@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<appender name="DefaultAppender"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>./logs/default.log</file>
+		<append>true</append>
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<fileNamePattern>./logs/otherdays/default.%i.log
+			</fileNamePattern>
+			<minIndex>1</minIndex>
+			<maxIndex>5</maxIndex>
+		</rollingPolicy>
+		<triggeringPolicy
+			class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<maxFileSize>100MB</maxFileSize>
+		</triggeringPolicy>
+		<encoder>
+			<pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8}@%m%n</pattern>
+			<charset class="java.nio.charset.Charset">UTF-8</charset>
+		</encoder>
+	</appender>
+
+	<appender name="NewFormatAppender"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>./logs/newformat.log</file>
+		<append>true</append>
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<fileNamePattern>./logs/otherdays/newformat.%i.log
+			</fileNamePattern>
+			<minIndex>1</minIndex>
+			<maxIndex>30</maxIndex>
+		</rollingPolicy>
+		<triggeringPolicy
+			class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<maxFileSize>100MB</maxFileSize>
+		</triggeringPolicy>
+		<encoder>
+			<pattern>%m%n</pattern>
+			<charset class="java.nio.charset.Charset">UTF-8</charset>
+		</encoder>
+	</appender>
+
+	<logger name="NewFormat" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="NewFormatAppender" />
+	</logger>
+
+	<root>
+		<level value="INFO" />
+		<appender-ref ref="DefaultAppender" />
+	</root>
+</configuration>

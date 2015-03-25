@@ -2,6 +2,7 @@ package org.allen.btc.hedging;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.util.Date;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -19,6 +20,8 @@ import org.allen.btc.future.bitvc.BitVcTrading;
 import org.allen.btc.future.bitvc.domain.VcTicker;
 import org.allen.btc.future.okcoin.OkCoinTrading;
 import org.allen.btc.future.okcoin.domain.OkTicker;
+import org.allen.btc.utils.DiffPriceResult;
+import org.allen.btc.utils.HedgingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +31,8 @@ import org.slf4j.LoggerFactory;
  */
 public class FutureHedging implements Hedging {
 
-    private static final Logger log = LoggerFactory.getLogger(FutureHedging.class);
+    private static Logger log = LoggerFactory.getLogger(FutureHedging.class);
+    private static Logger logNew = LoggerFactory.getLogger("NewFormat");
 
     private HedgingConfig config;
     private BitVcTrading bitVc;
@@ -95,10 +99,36 @@ public class FutureHedging implements Hedging {
 
             @Override
             public void run() {
-                CompareResult result = comparePrice();
-                if (result.isSuccess()) {
-                    result.getDiffPrice();
+                CompareResult compareResult = comparePrice();
+                if (compareResult.isSuccess()) {
+                    DiffPriceResult diffResult =
+                            HedgingUtils.computeDiff(compareResult.getDiffPrice(), config);
+                    switch (diffResult.getType()) {
+                    // huge
+                    case HUGE_DIF_POS:
+                    case HUGE_DIF_NEGA:
 
+                        break;
+                    // big
+                    case BIG_DIF_POS:
+                    case BIG_DIF_NEGA:
+
+                        break;
+                    // normal
+                    case NORMAL_DIF_POS:
+                    case NORMAL_DIF_NEGA:
+
+                        break;
+                    // small
+                    case SMALL_DIF_POS:
+                    case SMALL_DIF_NEGA:
+
+                        break;
+                    // non
+                    case NON_DIF:
+
+                        break;
+                    }
                 }
             }
 
@@ -106,8 +136,25 @@ public class FutureHedging implements Hedging {
     }
 
 
-    public boolean normalDiffPrice(float nowDiffPrice) {
-        
+    @SuppressWarnings("deprecation")
+    public void mock() {
+        // CompareResult result = comparePrice();
+        // if (result.isSuccess()) {
+        // log.warn(result.getDiffPrice() + "");
+        // logNew.warn("[" + System.currentTimeMillis() + "," +
+        // result.getDiffPrice() + "]");
+        // }
+
+        try {
+            VcTicker ticker = bitVc.getTicker(config.getTimeout());
+            System.out.println(new Date().toLocaleString() + " " + ticker.getLast());
+
+            // OkTicker ticker = okCoin.getTicker(config.getTimeout());
+            // System.out.println(new Date().toLocaleString() + " " +
+            // ticker.getTicker().getLast());
+        }
+        catch (Exception e) {
+        }
     }
 
 
@@ -165,5 +212,12 @@ public class FutureHedging implements Hedging {
         }
 
         return result;
+    }
+
+
+    public static void main(String[] args) {
+        FutureHedging futureHedging = new FutureHedging(new HedgingConfig());
+        futureHedging.start();
+        futureHedging.hedge();
     }
 }

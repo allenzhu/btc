@@ -3,7 +3,7 @@ package org.allen.btc.future.bitvc;
 import static org.allen.btc.Constants.BITVC_MARKET_DOMAIN;
 import static org.allen.btc.Constants.HTTPS;
 import static org.allen.btc.Constants.PATH_BITVC_TICKET_WEEK;
-import static org.allen.btc.HttpUtils.requestGet;
+import static org.allen.btc.utils.HttpUtils.requestGet;
 
 import java.net.URI;
 

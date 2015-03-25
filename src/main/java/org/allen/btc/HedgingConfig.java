@@ -6,12 +6,18 @@ package org.allen.btc;
 public class HedgingConfig {
 
     private float returnPrice; // 回归价
-    private float diffPrice; // 差价
-    private float bigDiffPrice; // 大查价
+    private float smallDiffPrice; // 小差价
+    private float normalDiffPrice; // 普通差价
+    private float bigDiffPrice; // 大差价
     private float hugeDiffPrice; // 极大差价
 
-    private int interval = 100;
-    private int timeout = 100;
+    private float smallDiffPriceRatio; // 小差价操作仓位比例
+    private float normalDiffPriceRatio; // 普通操作仓位比例
+    private float bigDiffPriceRatio; // 大差价操作仓位比例
+    private float hugeDiffPriceRatio; // 极大差价操作仓位比例
+
+    private int interval = 300;
+    private int timeout = 300;
 
 
     public float getReturnPrice() {
@@ -24,13 +30,23 @@ public class HedgingConfig {
     }
 
 
-    public float getDiffPrice() {
-        return diffPrice;
+    public float getSmallDiffPrice() {
+        return smallDiffPrice;
     }
 
 
-    public void setDiffPrice(float diffPrice) {
-        this.diffPrice = diffPrice;
+    public void setSmallDiffPrice(float smallDiffPrice) {
+        this.smallDiffPrice = smallDiffPrice;
+    }
+
+
+    public float getNormalDiffPrice() {
+        return normalDiffPrice;
+    }
+
+
+    public void setNormalDiffPrice(float normalDiffPrice) {
+        this.normalDiffPrice = normalDiffPrice;
     }
 
 
@@ -51,6 +67,46 @@ public class HedgingConfig {
 
     public void setHugeDiffPrice(float hugeDiffPrice) {
         this.hugeDiffPrice = hugeDiffPrice;
+    }
+
+
+    public float getSmallDiffPriceRatio() {
+        return smallDiffPriceRatio;
+    }
+
+
+    public void setSmallDiffPriceRatio(float smallDiffPriceRatio) {
+        this.smallDiffPriceRatio = smallDiffPriceRatio;
+    }
+
+
+    public float getNormalDiffPriceRatio() {
+        return normalDiffPriceRatio;
+    }
+
+
+    public void setNormalDiffPriceRatio(float normalDiffPriceRatio) {
+        this.normalDiffPriceRatio = normalDiffPriceRatio;
+    }
+
+
+    public float getBigDiffPriceRatio() {
+        return bigDiffPriceRatio;
+    }
+
+
+    public void setBigDiffPriceRatio(float bigDiffPriceRatio) {
+        this.bigDiffPriceRatio = bigDiffPriceRatio;
+    }
+
+
+    public float getHugeDiffPriceRatio() {
+        return hugeDiffPriceRatio;
+    }
+
+
+    public void setHugeDiffPriceRatio(float hugeDiffPriceRatio) {
+        this.hugeDiffPriceRatio = hugeDiffPriceRatio;
     }
 
 

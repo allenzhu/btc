@@ -1,4 +1,4 @@
-package org.allen.btc;
+package org.allen.btc.utils;
 
 import static org.apache.http.client.config.RequestConfig.custom;
 

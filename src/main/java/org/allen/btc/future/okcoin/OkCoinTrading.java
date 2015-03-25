@@ -5,7 +5,7 @@ import static org.allen.btc.Constants.OKCOIN_DOMAIN;
 import static org.allen.btc.Constants.PARAM_OKCOIN_SYMBOL;
 import static org.allen.btc.Constants.PARAM_OKCOIN_SYMBOL_VALUE;
 import static org.allen.btc.Constants.PATH_OKCOIN_TICKET;
-import static org.allen.btc.HttpUtils.requestGet;
+import static org.allen.btc.utils.HttpUtils.requestGet;
 
 import java.net.URI;
 

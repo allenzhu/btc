@@ -33,4 +33,5 @@ public class OkTicker {
     public String toString() {
         return "OkTicker [date=" + date + ", ticker=" + ticker + "]";
     }
+
 }

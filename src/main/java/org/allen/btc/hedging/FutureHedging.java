@@ -107,7 +107,7 @@ public class FutureHedging implements Hedging {
                     // huge
                     case HUGE_DIF_POS:
                     case HUGE_DIF_NEGA:
-
+                        
                         break;
                     // big
                     case BIG_DIF_POS:

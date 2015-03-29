@@ -13,4 +13,6 @@ public interface Trading {
 
     public <T> T getTicker(int timeout) throws Exception;
 
+
+    public <T> T trade(Object r, int timeout) throws Exception;
 }

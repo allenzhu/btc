@@ -1,11 +1,18 @@
 package org.allen.btc;
 
+import java.io.File;
+
+
 /**
  * @auther lansheng.zj
  */
 public class HedgingConfig {
 
+    public String recordPath = System.getProperty("recordPath", System.getProperty("user.home")
+            + File.separator + "transactions");
+
     private float returnPrice; // 回归价
+
     private float smallDiffPrice; // 小差价
     private float normalDiffPrice; // 普通差价
     private float bigDiffPrice; // 大差价
@@ -16,8 +23,15 @@ public class HedgingConfig {
     private float bigDiffPriceRatio; // 大差价操作仓位比例
     private float hugeDiffPriceRatio; // 极大差价操作仓位比例
 
+    private float skaterPrice; // 滑价
+
     private int interval = 300;
     private int timeout = 300;
+
+    private int bigDiffTime = 5; // 5s
+
+    private String accessKey;
+    private String secretKey;
 
 
     public float getReturnPrice() {
@@ -129,4 +143,53 @@ public class HedgingConfig {
         this.timeout = timeout;
     }
 
+
+    public String getRecordPath() {
+        return recordPath;
+    }
+
+
+    public void setRecordPath(String recordPath) {
+        this.recordPath = recordPath;
+    }
+
+
+    public int getBigDiffTime() {
+        return bigDiffTime;
+    }
+
+
+    public void setBigDiffTime(int bigDiffTime) {
+        this.bigDiffTime = bigDiffTime;
+    }
+
+
+    public float getSkaterPrice() {
+        return skaterPrice;
+    }
+
+
+    public void setSkaterPrice(float skaterPrice) {
+        this.skaterPrice = skaterPrice;
+    }
+
+
+    public String getAccessKey() {
+        return accessKey;
+    }
+
+
+    public void setAccessKey(String accessKey) {
+        this.accessKey = accessKey;
+    }
+
+
+    public String getSecretKey() {
+        return secretKey;
+    }
+
+
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
+    }
 }

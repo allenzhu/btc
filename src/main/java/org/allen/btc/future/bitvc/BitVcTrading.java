@@ -16,8 +16,11 @@ import static org.allen.btc.utils.HttpUtils.requestPost;
 import java.net.URI;
 import java.util.TreeMap;
 
+import org.allen.btc.Constants;
 import org.allen.btc.Credentials;
 import org.allen.btc.Trading;
+import org.allen.btc.future.bitvc.domain.VcDepths;
+import org.allen.btc.future.bitvc.domain.VcDepthsOriginal;
 import org.allen.btc.future.bitvc.domain.VcOrderRequest;
 import org.allen.btc.future.bitvc.domain.VcOrderResponse;
 import org.allen.btc.future.bitvc.domain.VcTicker;
@@ -61,6 +64,19 @@ public class BitVcTrading implements Trading {
 
         VcTicker result = requestGet(httpclient, uri, VcTicker.class, timeout);
         return result;
+    }
+
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public VcDepths getDepths(int timeout) throws Exception {
+        URI uri =
+                new URIBuilder().setScheme(HTTPS).setHost(BITVC_MARKET_DOMAIN)
+                    .setPath(Constants.PATH_BITVC_DEPTH_WEEK).build();
+
+        VcDepthsOriginal result = requestGet(httpclient, uri, VcDepthsOriginal.class, timeout);
+        VcDepths vcDepths = result.convertToVcDepths();
+        return vcDepths;
     }
 
 

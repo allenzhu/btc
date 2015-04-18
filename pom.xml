@@ -111,7 +111,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>org.allen.btc.hedging.FutureHedging</mainClass>
+							<mainClass>org.allen.btc.market.MarketDetector</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>

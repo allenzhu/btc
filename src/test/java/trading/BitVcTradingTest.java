@@ -1,6 +1,7 @@
 package trading;
 
 import org.allen.btc.future.bitvc.BitVcTrading;
+import org.allen.btc.future.bitvc.domain.VcDepths;
 import org.allen.btc.future.bitvc.domain.VcUserFutureRequest;
 import org.allen.btc.future.bitvc.domain.VcUserFutureResponse;
 import org.junit.Before;
@@ -35,4 +36,10 @@ public class BitVcTradingTest {
         System.out.println(response);
     }
 
+
+    @Test
+    public void testGetDepth() throws Exception {
+        VcDepths vcDepths = trading.getDepths(1000);
+        System.out.println(vcDepths);
+    }
 }

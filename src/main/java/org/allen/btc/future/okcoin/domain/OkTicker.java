@@ -5,16 +5,16 @@ package org.allen.btc.future.okcoin.domain;
  */
 public class OkTicker {
 
-    private String date; // 返回数据时服务器时间
+    private long date; // 返回数据时服务器时间
     private Ticker ticker;
 
 
-    public String getDate() {
+    public long getDate() {
         return date;
     }
 
 
-    public void setDate(String date) {
+    public void setDate(long date) {
         this.date = date;
     }
 

@@ -19,8 +19,11 @@ import static org.allen.btc.utils.HttpUtils.requestPost;
 import java.net.URI;
 import java.util.TreeMap;
 
+import org.allen.btc.Constants;
 import org.allen.btc.Credentials;
 import org.allen.btc.Trading;
+import org.allen.btc.future.okcoin.domain.OkDepths;
+import org.allen.btc.future.okcoin.domain.OkDepthsOriginal;
 import org.allen.btc.future.okcoin.domain.OkTicker;
 import org.allen.btc.future.okcoin.domain.OkTradeRequest;
 import org.allen.btc.future.okcoin.domain.OkTradeResponse;
@@ -65,6 +68,21 @@ public class OkCoinTrading implements Trading {
 
         OkTicker result = requestGet(httpclient, uri, OkTicker.class, timeout);
         return result;
+    }
+
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public OkDepths getDepths(int timeout) throws Exception {
+        URI uri =
+                new URIBuilder().setScheme(HTTPS).setHost(OKCOIN_DOMAIN)
+                    .setPath(Constants.PATH_OKCOIN_DEPTH_WEEK)
+                    .addParameter(PARAM_OKCOIN_SYMBOL, PARAM_OKCOIN_SYMBOL_F_VALUE)
+                    .addParameter(PARAM_OKCOIN_CONTRACT, PARAM_OKCOIN_CONTRACT_F_WEEK).build();
+
+        OkDepthsOriginal result = requestGet(httpclient, uri, OkDepthsOriginal.class, timeout);
+        OkDepths okDepths = result.convertToOkDepths();
+        return okDepths;
     }
 
 

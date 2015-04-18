@@ -75,4 +75,12 @@ public class HedgingUtils {
         }
         return false;
     }
+
+
+    public static boolean bigDifference(long l1, long l2) {
+        if (Math.abs(l1 - l2) > 1) {
+            return true;
+        }
+        return false;
+    }
 }

@@ -71,39 +71,39 @@ public class TransactionHolder {
 
 
     public float leftAmout(float totalAmount, DiffPriceType dType) {
-        float leftAmount = 0;
+        float exsitAmount = 0;
 
         switch (dType) {
         case SMALL_DIF_POS:
-            leftAmount = computeAmount(smallPositive);
+            exsitAmount = computeAmount(smallPositive);
             break;
         case NORMAL_DIF_POS:
-            leftAmount = computeAmount(normalPositive);
+            exsitAmount = computeAmount(normalPositive);
             break;
         case BIG_DIF_POS:
-            leftAmount = computeAmount(bigPositive);
+            exsitAmount = computeAmount(bigPositive);
             break;
         case HUGE_DIF_POS:
-            leftAmount = computeAmount(hugePositive);
+            exsitAmount = computeAmount(hugePositive);
             break;
 
         case SMALL_DIF_NEGA:
-            leftAmount = computeAmount(smallNegative);
+            exsitAmount = computeAmount(smallNegative);
             break;
         case NORMAL_DIF_NEGA:
-            leftAmount = computeAmount(normalNegative);
+            exsitAmount = computeAmount(normalNegative);
             break;
         case BIG_DIF_NEGA:
-            leftAmount = computeAmount(bigNegative);
+            exsitAmount = computeAmount(bigNegative);
             break;
         case HUGE_DIF_NEGA:
-            leftAmount = computeAmount(hugeNegative);
+            exsitAmount = computeAmount(hugeNegative);
             break;
         default:
             throw new IllegalArgumentException("leftAmout illegal argument dType=" + dType);
         }
 
-        return totalAmount - leftAmount;
+        return totalAmount - exsitAmount;
     }
 
 

@@ -182,4 +182,13 @@ public class VcOrderResponse {
         this.processedPrice = processedPrice;
     }
 
+
+    @Override
+    public String toString() {
+        return "VcOrderResponse [fee=" + fee + ", id=" + id + ", storeId=" + storeId + ", tradeType="
+                + tradeType + ", price=" + price + ", orderType=" + orderType + ", status=" + status
+                + ", money=" + money + ", amount=" + amount + ", lever=" + lever + ", orderTime=" + orderTime
+                + ", lastTime=" + lastTime + ", processedMoney=" + processedMoney + ", processedAmount="
+                + processedAmount + ", margin=" + margin + ", processedPrice=" + processedPrice + "]";
+    }
 }

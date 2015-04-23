@@ -3,6 +3,7 @@ package org.allen.btc.future.bitvc;
 import static org.allen.btc.Constants.BITVC_API_DOMAIN;
 import static org.allen.btc.Constants.BITVC_MARKET_DOMAIN;
 import static org.allen.btc.Constants.HTTPS;
+import static org.allen.btc.Constants.PATH_BITVC_ORDER_QUERY;
 import static org.allen.btc.Constants.PATH_BITVC_ORDER_SAVE;
 import static org.allen.btc.Constants.PATH_BITVC_TICKET_WEEK;
 import static org.allen.btc.Constants.PATH_BITVC_USER_FUTURE;
@@ -21,6 +22,7 @@ import org.allen.btc.Credentials;
 import org.allen.btc.Trading;
 import org.allen.btc.future.bitvc.domain.VcDepths;
 import org.allen.btc.future.bitvc.domain.VcDepthsOriginal;
+import org.allen.btc.future.bitvc.domain.VcOrderQueryRequest;
 import org.allen.btc.future.bitvc.domain.VcOrderRequest;
 import org.allen.btc.future.bitvc.domain.VcOrderResponse;
 import org.allen.btc.future.bitvc.domain.VcTicker;
@@ -86,6 +88,18 @@ public class BitVcTrading implements Trading {
         VcOrderRequest request = (VcOrderRequest) r;
         URI uri =
                 new URIBuilder().setScheme(HTTPS).setHost(BITVC_API_DOMAIN).setPath(PATH_BITVC_ORDER_SAVE)
+                    .build();
+        VcOrderResponse result = doPost(request, new VcOrderResponse(), httpclient, uri, timeout);
+        return result;
+    }
+
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public VcOrderResponse getTradeOrder(Object r, int timeout) throws Exception {
+        VcOrderQueryRequest request = (VcOrderQueryRequest) r;
+        URI uri =
+                new URIBuilder().setScheme(HTTPS).setHost(BITVC_API_DOMAIN).setPath(PATH_BITVC_ORDER_QUERY)
                     .build();
         VcOrderResponse result = doPost(request, new VcOrderResponse(), httpclient, uri, timeout);
         return result;

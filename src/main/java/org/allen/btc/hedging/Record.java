@@ -1,5 +1,8 @@
 package org.allen.btc.hedging;
 
+import org.allen.btc.utils.DiffPriceType;
+
+
 /**
  * @auther lansheng.zj
  */
@@ -11,6 +14,8 @@ public class Record {
     private float returnPrice;
     // 波动
     private float wave;
+    private DiffPriceType type;
+
     private float m;
     private float n;
 
@@ -65,9 +70,13 @@ public class Record {
     }
 
 
-    @Override
-    public String toString() {
-        return "Record [amount=" + amount + ", returnPrice=" + returnPrice + ", wave=" + wave + ", m=" + m
-                + ", n=" + n + "]";
+    public DiffPriceType getType() {
+        return type;
     }
+
+
+    public void setType(DiffPriceType type) {
+        this.type = type;
+    }
+
 }

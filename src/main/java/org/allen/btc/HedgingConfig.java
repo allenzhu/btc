@@ -13,6 +13,8 @@ public class HedgingConfig {
 
     private float returnPrice; // 回归价
 
+    private float totalAmount; // 总仓量
+
     private float smallDiffPrice; // 小差价
     private float normalDiffPrice; // 普通差价
     private float bigDiffPrice; // 大差价
@@ -24,6 +26,9 @@ public class HedgingConfig {
     private float hugeDiffPriceRatio; // 极大差价操作仓位比例
 
     private float skaterPrice; // 滑价
+
+    private float minOpenAmount; // 最小开仓量
+    private float minPacificateAmount; // 最小平仓量
 
     private int interval = 300;
     private int timeout = 300;
@@ -191,5 +196,35 @@ public class HedgingConfig {
 
     public void setSecretKey(String secretKey) {
         this.secretKey = secretKey;
+    }
+
+
+    public float getMinOpenAmount() {
+        return minOpenAmount;
+    }
+
+
+    public void setMinOpenAmount(float minOpenAmount) {
+        this.minOpenAmount = minOpenAmount;
+    }
+
+
+    public float getMinPacificateAmount() {
+        return minPacificateAmount;
+    }
+
+
+    public void setMinPacificateAmount(float minPacificateAmount) {
+        this.minPacificateAmount = minPacificateAmount;
+    }
+
+
+    public float getTotalAmount() {
+        return totalAmount;
+    }
+
+
+    public void setTotalAmount(float totalAmount) {
+        this.totalAmount = totalAmount;
     }
 }

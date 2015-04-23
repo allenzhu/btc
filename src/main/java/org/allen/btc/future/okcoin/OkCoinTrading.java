@@ -8,6 +8,7 @@ import static org.allen.btc.Constants.PARAM_OKCOIN_SYMBOL;
 import static org.allen.btc.Constants.PARAM_OKCOIN_SYMBOL_F_VALUE;
 import static org.allen.btc.Constants.PATH_OKCOIN_TICKET_WEEK;
 import static org.allen.btc.Constants.PATH_OKCOIN_TRADE;
+import static org.allen.btc.Constants.PATH_OKCOIN_TRADE_INFO;
 import static org.allen.btc.Constants.PATH_OKCOIN_USER_FUTURE;
 import static org.allen.btc.utils.EncryptUtils.checkRequestNotNull;
 import static org.allen.btc.utils.EncryptUtils.createRequestParam;
@@ -25,6 +26,8 @@ import org.allen.btc.Trading;
 import org.allen.btc.future.okcoin.domain.OkDepths;
 import org.allen.btc.future.okcoin.domain.OkDepthsOriginal;
 import org.allen.btc.future.okcoin.domain.OkTicker;
+import org.allen.btc.future.okcoin.domain.OkTradeQueryRequest;
+import org.allen.btc.future.okcoin.domain.OkTradeQueryResponse;
 import org.allen.btc.future.okcoin.domain.OkTradeRequest;
 import org.allen.btc.future.okcoin.domain.OkTradeResponse;
 import org.allen.btc.future.okcoin.domain.OkUserFutureRequest;
@@ -92,6 +95,18 @@ public class OkCoinTrading implements Trading {
         OkTradeRequest request = (OkTradeRequest) r;
         URI uri = new URIBuilder().setScheme(HTTPS).setHost(OKCOIN_DOMAIN).setPath(PATH_OKCOIN_TRADE).build();
         OkTradeResponse result = doPost(request, new OkTradeResponse(), httpclient, uri, timeout);
+        return result;
+    }
+
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public OkTradeQueryResponse getTradeOrder(Object r, int timeout) throws Exception {
+        OkTradeQueryRequest request = (OkTradeQueryRequest) r;
+        URI uri =
+                new URIBuilder().setScheme(HTTPS).setHost(OKCOIN_DOMAIN).setPath(PATH_OKCOIN_TRADE_INFO)
+                    .build();
+        OkTradeQueryResponse result = doPost(request, new OkTradeQueryResponse(), httpclient, uri, timeout);
         return result;
     }
 

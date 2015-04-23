@@ -58,4 +58,10 @@ public class VcDepthsOriginal {
         }
         return vcDepths;
     }
+
+
+    @Override
+    public String toString() {
+        return "VcDepthsOriginal [asks=" + asks + ", bids=" + bids + "]";
+    }
 }

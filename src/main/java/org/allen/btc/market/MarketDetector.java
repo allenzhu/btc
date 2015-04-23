@@ -158,74 +158,35 @@ public class MarketDetector {
     }
 
 
-    // FIXME 是否需要比对期望成交价格?
-    public boolean isVcBuyAmountSatisfied(float expectedAmount, float expectedPrice) {
-        boolean satisfied = false;
-        float amount = 0;
-        for (VcDeputer deputer : vcDepths.getBids()) {
-            if ((deputer.getPrice() + hedgingConfig.getSkaterPrice()) >= expectedPrice) {
-                amount += deputer.getAmount();
-            }
-        }
-
-        if (amount >= expectedAmount) {
-            satisfied = true;
-        }
-
-        return satisfied;
+    // vc buy satisfied
+    public boolean isVcBuyAmountSatisfied(float expectedAmount) {
+        VcDeputer deputer = vcDepths.getBids().get(0);
+        float amount = deputer.getAmount();
+        return amount >= expectedAmount;
     }
 
 
-    public boolean isVcSellAmountSatisfied(float expectedAmount, float expectedPrice) {
-        boolean satisfied = false;
-        float amount = 0;
-        for (VcDeputer deputer : vcDepths.getAsks()) {
-            if ((deputer.getPrice() - hedgingConfig.getSkaterPrice()) <= expectedPrice) {
-                amount += deputer.getAmount();
-            }
-        }
-
-        if (amount >= expectedAmount) {
-            satisfied = true;
-        }
-
-        return satisfied;
+    // vc sell satisfied
+    public boolean isVcSellAmountSatisfied(float expectedAmount) {
+        VcDeputer deputer = vcDepths.getAsks().get(0);
+        float amount = deputer.getAmount();
+        return amount >= expectedAmount;
     }
 
 
     // Ok buy satisfied
-    public boolean isOkBuyAmountSatisfied(float expectedAmount, float expectedPrice) {
-        boolean satisfied = false;
-        float amount = 0;
-        for (OkDeputer deputer : okDepths.getBids()) {
-            if ((deputer.getPrice() + hedgingConfig.getSkaterPrice()) >= expectedPrice) {
-                amount += deputer.getAmount();
-            }
-        }
-
-        if (amount >= expectedAmount) {
-            satisfied = true;
-        }
-
-        return satisfied;
+    public boolean isOkBuyAmountSatisfied(float expectedAmount) {
+        OkDeputer deputer = okDepths.getBids().get(0);
+        float amount = deputer.getAmount();
+        return amount >= expectedAmount;
     }
 
 
     // Ok sell satisfied
-    public boolean isOkSellAmountSatisfied(float expectedAmount, float expectedPrice) {
-        boolean satisfied = false;
-        float amount = 0;
-        for (OkDeputer deputer : okDepths.getAsks()) {
-            if ((deputer.getPrice() - hedgingConfig.getSkaterPrice()) <= expectedPrice) {
-                amount += deputer.getAmount();
-            }
-        }
-
-        if (amount >= expectedAmount) {
-            satisfied = true;
-        }
-
-        return satisfied;
+    public boolean isOkSellAmountSatisfied(float expectedAmount) {
+        OkDeputer deputer = okDepths.getAsks().get(0);
+        float amount = deputer.getAmount();
+        return amount >= expectedAmount;
     }
 
 

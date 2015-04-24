@@ -107,6 +107,51 @@ public class TransactionHolder {
     }
 
 
+    public float exsitAmout(DiffPriceType dType) {
+        float exsitAmount = 0;
+        switch (dType) {
+        case HUGE_DIF_POS:
+        case BIG_DIF_POS:
+        case NORMAL_DIF_POS:
+        case SMALL_DIF_POS:
+            for (Record record : hugePositive) {
+                exsitAmount += record.getAmount();
+            }
+            for (Record record : bigPositive) {
+                exsitAmount += record.getAmount();
+            }
+            for (Record record : normalPositive) {
+                exsitAmount += record.getAmount();
+            }
+            for (Record record : smallPositive) {
+                exsitAmount += record.getAmount();
+            }
+            break;
+        case HUGE_DIF_NEGA:
+        case BIG_DIF_NEGA:
+        case NORMAL_DIF_NEGA:
+        case SMALL_DIF_NEGA:
+            for (Record record : hugeNegative) {
+                exsitAmount += record.getAmount();
+            }
+            for (Record record : bigNegative) {
+                exsitAmount += record.getAmount();
+            }
+            for (Record record : normalNegative) {
+                exsitAmount += record.getAmount();
+            }
+            for (Record record : smallNegative) {
+                exsitAmount += record.getAmount();
+            }
+            break;
+        default:
+            throw new IllegalArgumentException("computAmount illegal argument dType=" + dType);
+        }
+
+        return exsitAmount;
+    }
+
+
     private float computeAmount(List<Record> rs) {
         float amount = 0;
         for (Record record : rs) {

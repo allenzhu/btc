@@ -58,9 +58,10 @@ public class TransactionManager {
     /**
      * 期望交易量， 最小开仓量和可交易量的最小值
      * 
+     * @param dType
      * @return
      */
-    public float computAmount(DiffPriceType dType) {
+    public float computOpenOrOpenAirAmount(DiffPriceType dType) {
         float totalAmount = 0;
         switch (dType) {
         case SMALL_DIF_NEGA:
@@ -85,6 +86,18 @@ public class TransactionManager {
 
         float leftAmount = transactionHolder.leftAmout(totalAmount, dType);
         return (leftAmount <= 0.0) ? 0 : Math.min(hedgingConfig.getMinOpenAmount(), leftAmount);
+    }
+
+
+    /**
+     * 期望平仓量， 最小平仓量和可平仓量的最小值
+     * 
+     * @param dType
+     * @return
+     */
+    public float computeReverseOrReverseAirAmount(DiffPriceType dType) {
+        float totalAmount = transactionHolder.exsitAmout(dType);
+        return (totalAmount <= 0.0) ? 0 : Math.min(hedgingConfig.getMinReverseAmount(), totalAmount);
     }
 
 

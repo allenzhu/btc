@@ -1,43 +1,28 @@
 package org.allen.btc.hedging;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.allen.btc.Constants.PARAM_OKCOIN_SYMBOL_F_VALUE;
+import static org.allen.btc.utils.DiffPriceType.HUGE_DIF_NEGA;
+import static org.allen.btc.utils.DiffPriceType.HUGE_DIF_POS;
 
-import java.io.IOException;
 import java.util.Date;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.allen.btc.Constants;
 import org.allen.btc.Hedging;
 import org.allen.btc.HedgingConfig;
 import org.allen.btc.future.bitvc.BitVcTrading;
 import org.allen.btc.future.bitvc.BitVcTradingManager;
-import org.allen.btc.future.bitvc.domain.VcOrderRequest;
-import org.allen.btc.future.bitvc.domain.VcOrderResponse;
 import org.allen.btc.future.bitvc.domain.VcTicker;
 import org.allen.btc.future.okcoin.OkCoinTrading;
 import org.allen.btc.future.okcoin.OkCoinTradingManager;
 import org.allen.btc.future.okcoin.domain.OkTicker;
-import org.allen.btc.future.okcoin.domain.OkTradeRequest;
-import org.allen.btc.future.okcoin.domain.OkTradeResponse;
 import org.allen.btc.market.MarketDetector;
-import org.allen.btc.utils.DiffPriceResult;
 import org.allen.btc.utils.DiffPriceType;
-import org.allen.btc.utils.FileUtils;
 import org.allen.btc.utils.HedgingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.alibaba.fastjson.JSON;
 
 
 /**
@@ -205,7 +190,7 @@ public class FutureHedging implements Hedging {
                     // 波动
                     float wave = transactionManager.getWaveByDiffPriceType(dType);
                     // 期望交易量
-                    float expectedAmount = transactionManager.computAmount(dType);
+                    float expectedAmount = transactionManager.computOpenOrOpenAirAmount(dType);
 
                     switch (dType) {
                     // M>=回+波，正向波动，A开空，A买一价格&量，B开多，B卖一价格&量
@@ -260,12 +245,11 @@ public class FutureHedging implements Hedging {
                     // vcSell-OkBuy
                     float n = vcSell - okBuy;
 
-                    float expectedAmount = 0;
-                    
                     // n<=回
                     if (n <= config.getReturnPrice()) {
                         // 正向波动的交易平仓
-                        float expectedAmount = 0;
+                        float expectedAmount =
+                                transactionManager.computeReverseOrReverseAirAmount(HUGE_DIF_POS);
                         if (marketDetector.isVcSellAmountSatisfied(expectedAmount)
                                 && marketDetector.isOkBuyAmountSatisfied(expectedAmount)) {
                             // A平空,看A卖1价格&量
@@ -281,13 +265,17 @@ public class FutureHedging implements Hedging {
                     // m>=回
                     else if (m >= config.getReturnPrice()) {
                         // 负向波动的交易平仓
+                        float expectedAmount =
+                                transactionManager.computeReverseOrReverseAirAmount(HUGE_DIF_NEGA);
                         if (marketDetector.isVcBuyAmountSatisfied(expectedAmount)
                                 && marketDetector.isOkSellAmountSatisfied(expectedAmount)) {
+                            // A平多,看A买1价格&量
+                            bitVcTradingManager.tradeReverse(vcBuy + "", vcBuy * expectedAmount + "", 1);
 
+                            // B平空,看B卖1价格&量
+                            okCoinTradingManager.tradeReverseAir(okTicker.getTicker().getSell(),
+                                expectedAmount + "", false, 1);
                         }
-                        // A平多,看A买1价格&量
-                        // B平空,看B卖1价格&量
-
                     }
                     else {
                         // do nothing

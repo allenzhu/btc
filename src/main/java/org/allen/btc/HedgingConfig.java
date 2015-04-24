@@ -28,7 +28,7 @@ public class HedgingConfig {
     private float skaterPrice; // 滑价
 
     private float minOpenAmount; // 最小开仓量
-    private float minPacificateAmount; // 最小平仓量
+    private float minReverseAmount; // 最小平仓量
 
     private int interval = 300;
     private int timeout = 300;
@@ -209,13 +209,13 @@ public class HedgingConfig {
     }
 
 
-    public float getMinPacificateAmount() {
-        return minPacificateAmount;
+    public float getMinReverseAmount() {
+        return minReverseAmount;
     }
 
 
-    public void setMinPacificateAmount(float minPacificateAmount) {
-        this.minPacificateAmount = minPacificateAmount;
+    public void setMinReverseAmount(float minReverseAmount) {
+        this.minReverseAmount = minReverseAmount;
     }
 
 

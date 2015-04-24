@@ -56,7 +56,7 @@ public class TransactionManager {
 
 
     /**
-     * 期望交易量， 最小开仓量和可交易量的最小值
+     * 期望交易量， 固定开仓量和可交易量的最小值
      * 
      * @param dType
      * @return
@@ -90,7 +90,7 @@ public class TransactionManager {
 
 
     /**
-     * 期望平仓量， 最小平仓量和可平仓量的最小值
+     * 期望平仓量， 固定平仓量和可平仓量的最小值
      * 
      * @param dType
      * @return

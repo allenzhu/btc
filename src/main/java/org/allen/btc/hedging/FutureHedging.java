@@ -186,6 +186,7 @@ public class FutureHedging implements Hedging {
                     // vcSell-OkBuy
                     float n = vcSell - okBuy;
 
+                    // 计算差价类型
                     DiffPriceType dType = transactionManager.computeDiffPriceType(m, n);
                     // 波动
                     float wave = transactionManager.getWaveByDiffPriceType(dType);
@@ -259,8 +260,6 @@ public class FutureHedging implements Hedging {
                             okCoinTradingManager.tradeReverse(okTicker.getTicker().getBuy(), expectedAmount
                                     + "", false, 1);
                         }
-
-                        // 最小平仓量
                     }
                     // m>=回
                     else if (m >= config.getReturnPrice()) {

@@ -24,4 +24,11 @@ public interface Trading {
 
 
     public <T> T userFutureInfo(Object r, int timeout) throws Exception;
+
+
+    public Float exchangeRate(int timeout) throws Exception;
+
+
+    public <T> T cancel(Object r, int timeout) throws Exception;
+
 }

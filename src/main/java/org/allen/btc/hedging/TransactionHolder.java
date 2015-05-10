@@ -1,6 +1,7 @@
 package org.allen.btc.hedging;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.allen.btc.utils.DiffPriceType;
@@ -37,35 +38,158 @@ public class TransactionHolder {
     }
 
 
+    public int smallPositiveSize() {
+        return smallPositive.size();
+    }
+
+
+    public int normalPositiveSize() {
+        return normalPositive.size();
+    }
+
+
+    public int bigPositiveSize() {
+        return bigPositive.size();
+    }
+
+
+    public int hugePositiveSize() {
+        return hugePositive.size();
+    }
+
+
+    public int smallNegativeSize() {
+        return smallNegative.size();
+    }
+
+
+    public int normalNegativeSize() {
+        return normalNegative.size();
+    }
+
+
+    public int bigNegativeSize() {
+        return bigNegative.size();
+    }
+
+
+    public int hugeNegativeSize() {
+        return hugeNegative.size();
+    }
+
+
     public void addRecord(Record record, DiffPriceType dType) {
         switch (dType) {
         case SMALL_DIF_POS:
-            smallPositive.add(record);
+            addRecord(smallPositive, record);
             break;
         case NORMAL_DIF_POS:
-            normalPositive.add(record);
+            addRecord(normalPositive, record);
             break;
         case BIG_DIF_POS:
-            bigPositive.add(record);
+            addRecord(bigPositive, record);
             break;
         case HUGE_DIF_POS:
-            hugePositive.add(record);
+            addRecord(hugePositive, record);
             break;
 
         case SMALL_DIF_NEGA:
-            smallNegative.add(record);
+            addRecord(smallNegative, record);
             break;
         case NORMAL_DIF_NEGA:
-            normalNegative.add(record);
+            addRecord(normalNegative, record);
             break;
         case BIG_DIF_NEGA:
-            bigNegative.add(record);
+            addRecord(bigNegative, record);
             break;
         case HUGE_DIF_NEGA:
-            hugeNegative.add(record);
+            addRecord(hugeNegative, record);
             break;
         default:
             throw new IllegalArgumentException("addRecord illegal argument dType=" + dType);
+        }
+    }
+
+
+    public void removeRecord(float expectedAmount, DiffPriceType dType) {
+        switch (dType) {
+        case SMALL_DIF_POS:
+        case NORMAL_DIF_POS:
+        case BIG_DIF_POS:
+        case HUGE_DIF_POS:
+            if (isSatifiedToRemove(hugePositive, expectedAmount)) {
+                remove(hugePositive, expectedAmount);
+            }
+            else if (isSatifiedToRemove(bigPositive, expectedAmount)) {
+                remove(bigPositive, expectedAmount);
+            }
+            else if (isSatifiedToRemove(normalPositive, expectedAmount)) {
+                remove(normalPositive, expectedAmount);
+            }
+            else if (isSatifiedToRemove(smallPositive, expectedAmount)) {
+                remove(smallPositive, expectedAmount);
+            }
+            else {
+                throw new IllegalArgumentException(
+                    "[never expected] remove positive record error. expectedAmount=" + expectedAmount
+                            + ", dType=" + dType);
+            }
+            break;
+
+        case HUGE_DIF_NEGA:
+        case BIG_DIF_NEGA:
+        case NORMAL_DIF_NEGA:
+        case SMALL_DIF_NEGA:
+            if (isSatifiedToRemove(hugeNegative, expectedAmount)) {
+                remove(hugeNegative, expectedAmount);
+            }
+            else if (isSatifiedToRemove(bigNegative, expectedAmount)) {
+                remove(bigNegative, expectedAmount);
+            }
+            else if (isSatifiedToRemove(normalNegative, expectedAmount)) {
+                remove(normalNegative, expectedAmount);
+            }
+            else if (isSatifiedToRemove(smallNegative, expectedAmount)) {
+                remove(smallNegative, expectedAmount);
+            }
+            else {
+                throw new IllegalArgumentException(
+                    "[never expected] remove negative record error. expectedAmount=" + expectedAmount
+                            + ", dType=" + dType);
+            }
+            break;
+        default:
+            throw new IllegalArgumentException("removeRecord illegal argument dType=" + dType);
+        }
+    }
+
+
+    private boolean isSatifiedToRemove(List<Record> rs, float expectedAmount) {
+        float total = 0;
+        for (Record record : rs) {
+            total += record.getAmount();
+        }
+
+        return total >= expectedAmount;
+    }
+
+
+    private void remove(List<Record> rs, float expectedAmount) {
+        synchronized (rs) {
+            Iterator<Record> iterator = rs.iterator();
+            while (iterator.hasNext()) {
+                Record record = iterator.next();
+                if (record.getAmount() == expectedAmount) {
+                    iterator.remove();
+                }
+            }
+        }
+    }
+
+
+    private void addRecord(List<Record> rs, Record record) {
+        synchronized (rs) {
+            rs.add(record);
         }
     }
 
@@ -107,41 +231,47 @@ public class TransactionHolder {
     }
 
 
-    public float exsitAmout(DiffPriceType dType) {
+    /**
+     * 有限返回大查价订单交易量
+     * 
+     * @param dType
+     * @return
+     */
+    public float exsitAmount(DiffPriceType dType) {
         float exsitAmount = 0;
         switch (dType) {
         case HUGE_DIF_POS:
         case BIG_DIF_POS:
         case NORMAL_DIF_POS:
         case SMALL_DIF_POS:
-            for (Record record : hugePositive) {
-                exsitAmount += record.getAmount();
+            if (!hugePositive.isEmpty()) {
+                exsitAmount = computeAmount(hugePositive);
             }
-            for (Record record : bigPositive) {
-                exsitAmount += record.getAmount();
+            else if (!bigPositive.isEmpty()) {
+                exsitAmount = computeAmount(bigPositive);
             }
-            for (Record record : normalPositive) {
-                exsitAmount += record.getAmount();
+            else if (!normalPositive.isEmpty()) {
+                exsitAmount = computeAmount(normalPositive);
             }
-            for (Record record : smallPositive) {
-                exsitAmount += record.getAmount();
+            else if (!smallPositive.isEmpty()) {
+                exsitAmount = computeAmount(smallPositive);
             }
             break;
         case HUGE_DIF_NEGA:
         case BIG_DIF_NEGA:
         case NORMAL_DIF_NEGA:
         case SMALL_DIF_NEGA:
-            for (Record record : hugeNegative) {
-                exsitAmount += record.getAmount();
+            if (!hugeNegative.isEmpty()) {
+                exsitAmount = computeAmount(hugeNegative);
             }
-            for (Record record : bigNegative) {
-                exsitAmount += record.getAmount();
+            else if (!bigNegative.isEmpty()) {
+                exsitAmount = computeAmount(bigNegative);
             }
-            for (Record record : normalNegative) {
-                exsitAmount += record.getAmount();
+            else if (!normalNegative.isEmpty()) {
+                exsitAmount = computeAmount(normalNegative);
             }
-            for (Record record : smallNegative) {
-                exsitAmount += record.getAmount();
+            else if (!smallNegative.isEmpty()) {
+                exsitAmount = computeAmount(smallNegative);
             }
             break;
         default:

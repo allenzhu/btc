@@ -19,6 +19,29 @@ public class EncryptUtils {
                                               'C', 'D', 'E', 'F' };
 
 
+    public static String signStr(SortedMap<String, String> map, String ak, String akValue) {
+        StringBuilder sb = new StringBuilder("");
+        boolean isFirst = true;
+        for (Entry<String, String> entry : map.entrySet()) {
+            if (isFirst) {
+                isFirst = false;
+
+            }
+            else {
+                sb.append("&");
+            }
+            sb.append(entry.getKey());
+            sb.append("=");
+            sb.append(entry.getValue());
+        }
+        sb.append("&");
+        sb.append(ak);
+        sb.append("=");
+        sb.append(akValue);
+        return sb.toString();
+    }
+
+
     public static String signStr(SortedMap<String, String> map) {
         StringBuilder sb = new StringBuilder("");
         boolean isFirst = true;
@@ -34,7 +57,6 @@ public class EncryptUtils {
             sb.append("=");
             sb.append(entry.getValue());
         }
-
         return sb.toString();
     }
 

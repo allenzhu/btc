@@ -15,6 +15,9 @@ public class OkDepths {
     // 买方深度
     private List<OkDeputer> bids;
 
+    public OkDepths() {
+        time = 0;
+    }
 
     public OkDepths(long t) {
         time = t;

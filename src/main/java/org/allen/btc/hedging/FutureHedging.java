@@ -1,10 +1,12 @@
 package org.allen.btc.hedging;
 
+import static java.lang.Float.parseFloat;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.allen.btc.utils.DiffPriceType.HUGE_DIF_NEGA;
 import static org.allen.btc.utils.DiffPriceType.HUGE_DIF_POS;
+import static org.allen.btc.utils.DiffPriceType.NON_DIF;
+import static org.allen.btc.utils.HedgingUtils.bigDifference;
 
-import java.util.Date;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -20,7 +22,6 @@ import org.allen.btc.future.okcoin.OkCoinTradingManager;
 import org.allen.btc.future.okcoin.domain.OkTicker;
 import org.allen.btc.market.MarketDetector;
 import org.allen.btc.utils.DiffPriceType;
-import org.allen.btc.utils.HedgingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +34,7 @@ public class FutureHedging implements Hedging {
     private static Logger log = LoggerFactory.getLogger(FutureHedging.class);
     private static Logger logNew = LoggerFactory.getLogger("NewFormat");
 
+    private boolean isShutdown = false;
     private HedgingConfig config;
     private BitVcTrading bitVc;
     private OkCoinTrading okCoin;
@@ -47,12 +49,18 @@ public class FutureHedging implements Hedging {
 
 
     public FutureHedging(HedgingConfig hedgingConfig) {
+        this(hedgingConfig, new BitVcTrading(), new OkCoinTrading());
+    }
+
+
+    public FutureHedging(HedgingConfig hedgingConfig, BitVcTrading vc, OkCoinTrading ok) {
         config = hedgingConfig;
-        bitVc = new BitVcTrading();
-        okCoin = new OkCoinTrading();
+        bitVc = vc;
+        okCoin = ok;
         marketDetector = new MarketDetector(bitVc, okCoin, config);
         bitVcTradingManager = new BitVcTradingManager(config, marketDetector, bitVc);
         okCoinTradingManager = new OkCoinTradingManager(config, marketDetector, okCoin);
+        transactionManager = new TransactionManager(hedgingConfig);
 
         ses = Executors.newScheduledThreadPool(1, new ThreadFactory() {
 
@@ -77,6 +85,16 @@ public class FutureHedging implements Hedging {
     }
 
 
+    public boolean isShutdown() {
+        return isShutdown;
+    }
+
+
+    public void setShutdown(boolean isShutdown) {
+        this.isShutdown = isShutdown;
+    }
+
+
     @Override
     public void start() {
         try {
@@ -95,11 +113,16 @@ public class FutureHedging implements Hedging {
     @Override
     public void shutdown() {
         try {
+            setShutdown(true);
+            ses.shutdown();
+            eveningUp.shutdown();
+
             marketDetector.close();
+            transactionManager.close();
+
             bitVc.shutdown();
             okCoin.shutdown();
 
-            transactionManager.close();
         }
         catch (Exception e) {
             log.error("shutdown future hedging error.", e);
@@ -120,16 +143,19 @@ public class FutureHedging implements Hedging {
     }
 
 
-    private void positiveWave(float expectedAmount, float aBuy, String bSell, float m, float n,
+    private void positiveWave(float expectedAmount, String aBuy, String bSell, float m, float n,
             DiffPriceType dType, float wave) {
         // vcBuy的量，okSell的量
-        if (marketDetector.isVcBuyAmountSatisfied(expectedAmount)
+        if (expectedAmount > 0 && marketDetector.isVcBuyAmountSatisfied(expectedAmount)
                 && marketDetector.isOkSellAmountSatisfied(expectedAmount)) {
             // A 开空,看A买1价格
-            bitVcTradingManager.tradeOpenAir(aBuy + "", aBuy * expectedAmount + "", 1);
+            float totalMoney = Float.parseFloat(aBuy) * expectedAmount;
+            bitVcTradingManager.tradeOpenAir(aBuy, totalMoney + "", 1);
 
-            // B 开多,看B卖1价格
-            okCoinTradingManager.tradeOpen(bSell, expectedAmount + "", false, 1);
+            // B 开多,看B卖1价格(1张是$100)
+            float totalPiece = Float.parseFloat(bSell) * expectedAmount / 100;
+            int intTotalPiece = Math.round(totalPiece);
+            okCoinTradingManager.tradeOpen(bSell, intTotalPiece + "", false, 1);
 
             // record
             addRecord(expectedAmount, m, n, dType, wave);
@@ -137,19 +163,188 @@ public class FutureHedging implements Hedging {
     }
 
 
-    private void negativeWave(float expectedAmount, float aSell, String bBuy, float m, float n,
+    private void negativeWave(float expectedAmount, String aSell, String bBuy, float m, float n,
             DiffPriceType dType, float wave) {
         // vcSell的量，okBuy的量
-        if (marketDetector.isVcSellAmountSatisfied(expectedAmount)
+        if (expectedAmount > 0 && marketDetector.isVcSellAmountSatisfied(expectedAmount)
                 && marketDetector.isOkBuyAmountSatisfied(expectedAmount)) {
             // A 开多,看A卖1价格
-            bitVcTradingManager.tradeOpen(aSell + "", aSell * expectedAmount + "", 1);
+            bitVcTradingManager.tradeOpen(aSell, Float.parseFloat(aSell) * expectedAmount + "", 1);
 
             // B 开空,看B买1价格
-            okCoinTradingManager.tradeOpenAir(bBuy, expectedAmount + "", false, 1);
+            float totalPiece = Float.parseFloat(bBuy) * expectedAmount / 100;
+            int intTotalPiece = Math.round(totalPiece);
+            okCoinTradingManager.tradeOpenAir(bBuy, intTotalPiece + "", false, 1);
 
             // record
             addRecord(expectedAmount, m, n, dType, wave);
+        }
+    }
+
+
+    // 开仓
+    public void open() {
+        VcTicker vcTicker = bitVcTradingManager.getNowVcTicker();
+        OkTicker okTicker = okCoinTradingManager.getNowOkTicker();
+        if (null == vcTicker || null == okTicker) {
+            log.warn("detector not ready, wait for the next invoke.");
+            return;
+        }
+        long nowSecond = System.currentTimeMillis() / 1000;
+        if (bigDifference(vcTicker.getTime(), okTicker.getDate())) {
+            log.error("kaicang vcTime big different than okTime, vcTime=" + vcTicker.getTime() + ",okTime="
+                    + okTicker.getDate() + ", now=" + nowSecond);
+        }
+        else if (bigDifference(okTicker.getDate(), nowSecond)) {
+            log.error("kaicang okTime big different than now, vcTime=" + vcTicker.getTime() + ",okTime="
+                    + okTicker.getDate() + ", now=" + nowSecond);
+        }
+        else {
+            // 汇率
+            float vcRate = marketDetector.getVcRate();
+            float okRate = marketDetector.getOkRate();
+
+            float vcBuy = Float.parseFloat(vcTicker.getBuy()) * vcRate;
+            float vcSell = Float.parseFloat(vcTicker.getSell()) * vcRate;
+            float okSell = Float.parseFloat(okTicker.getTicker().getSell()) * okRate;
+            float okBuy = Float.parseFloat(okTicker.getTicker().getBuy()) * okRate;
+
+            // vcBuy-okSell
+            float m = vcBuy - okSell;
+            // vcSell-OkBuy
+            float n = vcSell - okBuy;
+
+            // 计算差价类型
+            DiffPriceType dType = transactionManager.computeDiffPriceType(m, n);
+            if (NON_DIF == dType) {
+                return;
+            }
+            // 波动
+            float wave = transactionManager.getWaveByDiffPriceType(dType);
+            // 期望交易量
+            float expectedAmount = transactionManager.computOpenOrOpenAirAmount(dType);
+
+            // 找下一个小波动
+            while (expectedAmount <= 0f) {
+                // 下滑差价类型
+                dType = dType.skateToNext();
+                if (NON_DIF == dType) {
+                    break;
+                }
+                // 波动
+                wave = transactionManager.getWaveByDiffPriceType(dType);
+                // 期望交易量
+                expectedAmount = transactionManager.computOpenOrOpenAirAmount(dType);
+            }
+
+            switch (dType) {
+            // M>=回+波，正向波动，A开空，A买一价格&量，B开多，B卖一价格&量
+            case HUGE_DIF_POS:
+            case BIG_DIF_POS:
+            case NORMAL_DIF_POS:
+            case SMALL_DIF_POS:
+                float aPrice1 = parseFloat(vcTicker.getBuy()) - config.getSkaterPrice() / vcRate;
+                float bPrice1 = parseFloat(okTicker.getTicker().getSell()) + config.getSkaterPrice() / okRate;
+                // aPrice1,bPrice1和原本的币种一致
+                positiveWave(expectedAmount, aPrice1 + "", bPrice1 + "", m, n, dType, wave);
+                break;
+            // N<=回-波，负向波动，A开多，A卖一价格&量，B开空，B买一价格&量
+            case HUGE_DIF_NEGA:
+            case BIG_DIF_NEGA:
+            case NORMAL_DIF_NEGA:
+            case SMALL_DIF_NEGA:
+                float aPrice2 = parseFloat(vcTicker.getSell()) + config.getSkaterPrice() / vcRate;
+                float bPrice2 = parseFloat(okTicker.getTicker().getBuy()) - config.getSkaterPrice() / okRate;
+                negativeWave(expectedAmount, aPrice2 + "", bPrice2 + "", m, n, dType, wave);
+                break;
+            // M<回+波 and 回-波<N
+            case NON_DIF:
+                break;
+            default:
+                throw new UnsupportedOperationException("unknown DiffPriceType, dType=" + dType);
+
+            }
+        }
+    }
+
+
+    public void reverse() {
+        VcTicker vcTicker = bitVcTradingManager.getNowVcTicker();
+        OkTicker okTicker = okCoinTradingManager.getNowOkTicker();
+
+        if (null == vcTicker || null == okTicker) {
+            log.warn("detector not ready, wait for the next invoke.");
+            return;
+        }
+        long nowSecond = System.currentTimeMillis() / 1000;
+        if (bigDifference(vcTicker.getTime(), okTicker.getDate())) {
+            log.error("pingcang vcTime big different than okTime, vcTime=" + vcTicker.getTime() + ",okTime="
+                    + okTicker.getDate() + ", now=" + nowSecond);
+        }
+        else if (bigDifference(okTicker.getDate(), nowSecond)) {
+            log.error("pingcang okTime big different than now, vcTime=" + vcTicker.getTime() + ",okTime="
+                    + okTicker.getDate() + ", now=" + nowSecond);
+        }
+        else {
+            // 汇率
+            float vcRate = marketDetector.getVcRate();
+            float okRate = marketDetector.getOkRate();
+
+            float vcBuy = Float.parseFloat(vcTicker.getBuy()) * vcRate;
+            float vcSell = Float.parseFloat(vcTicker.getSell()) * vcRate;
+            float okSell = Float.parseFloat(okTicker.getTicker().getSell()) * okRate;
+            float okBuy = Float.parseFloat(okTicker.getTicker().getBuy()) * okRate;
+
+            // vcBuy-okSell
+            float m = vcBuy - okSell;
+            // vcSell-OkBuy
+            float n = vcSell - okBuy;
+
+            // n<=回
+            if (n <= config.getReturnPrice()) {
+                // 正向波动的交易平仓
+                float expectedAmount = transactionManager.computeReverseOrReverseAirAmount(HUGE_DIF_POS);
+                if (expectedAmount > 0f && marketDetector.isVcSellAmountSatisfied(expectedAmount)
+                        && marketDetector.isOkBuyAmountSatisfied(expectedAmount)) {
+                    // A平空,看A卖1价格&量
+                    float aPrice = parseFloat(vcTicker.getSell()) + config.getSkaterPrice() / vcRate;
+                    bitVcTradingManager.tradeReverseAir(aPrice + "", aPrice * expectedAmount + "", 1);
+
+                    float bPrice =
+                            parseFloat(okTicker.getTicker().getBuy()) - config.getSkaterPrice() / okRate;
+                    // B平多,看B买1价格&量
+                    float totalPiece = bPrice * expectedAmount / 100;
+                    int intTotalPiece = Math.round(totalPiece);
+                    okCoinTradingManager.tradeReverse(bPrice + "", intTotalPiece + "", false, 1);
+
+                    // remove
+                    transactionManager.removeRecord(expectedAmount, HUGE_DIF_POS);
+                }
+            }
+            // m>=回
+            else if (m >= config.getReturnPrice()) {
+                // 负向波动的交易平仓
+                float expectedAmount = transactionManager.computeReverseOrReverseAirAmount(HUGE_DIF_NEGA);
+                if (expectedAmount > 0f && marketDetector.isVcBuyAmountSatisfied(expectedAmount)
+                        && marketDetector.isOkSellAmountSatisfied(expectedAmount)) {
+                    // A平多,看A买1价格&量
+                    float aPrice = parseFloat(vcTicker.getBuy()) - config.getSkaterPrice() / vcRate;
+                    bitVcTradingManager.tradeReverse(aPrice + "", aPrice * expectedAmount + "", 1);
+
+                    // B平空,看B卖1价格&量
+                    float bPrice =
+                            parseFloat(okTicker.getTicker().getSell()) + config.getSkaterPrice() / okRate;
+                    float totalPiece = bPrice * expectedAmount / 100;
+                    int intTotalPiece = Math.round(totalPiece);
+                    okCoinTradingManager.tradeReverseAir(bPrice + "", intTotalPiece + "", false, 1);
+
+                    // remove
+                    transactionManager.removeRecord(expectedAmount, HUGE_DIF_NEGA);
+                }
+            }
+            else {
+                // do nothing
+            }
         }
     }
 
@@ -162,59 +357,18 @@ public class FutureHedging implements Hedging {
             @Override
             public void run() {
 
-                VcTicker vcTicker = bitVcTradingManager.getNowVcTicker();
-                OkTicker okTicker = okCoinTradingManager.getNowOkTicker();
-                if (null == vcTicker || null == okTicker) {
-                    log.warn("detector not ready, wait for the next invoke.");
-                    return;
-                }
-                long nowSecond = System.currentTimeMillis() / 1000;
-                if (HedgingUtils.bigDifference(vcTicker.getTime(), okTicker.getDate())) {
-                    // TODO
-                }
-                else if (HedgingUtils.bigDifference(okTicker.getDate(), nowSecond)) {
-                    // TODO
-                }
-                else {
-                    float vcBuy = Float.parseFloat(vcTicker.getBuy());
-                    float vcSell = Float.parseFloat(vcTicker.getSell());
-                    float okSell = Float.parseFloat(okTicker.getTicker().getSell());
-                    float okBuy = Float.parseFloat(okTicker.getTicker().getBuy());
-
-                    // vcBuy-okSell
-                    float m = vcBuy - okSell;
-                    // vcSell-OkBuy
-                    float n = vcSell - okBuy;
-
-                    // 计算差价类型
-                    DiffPriceType dType = transactionManager.computeDiffPriceType(m, n);
-                    // 波动
-                    float wave = transactionManager.getWaveByDiffPriceType(dType);
-                    // 期望交易量
-                    float expectedAmount = transactionManager.computOpenOrOpenAirAmount(dType);
-
-                    switch (dType) {
-                    // M>=回+波，正向波动，A开空，A买一价格&量，B开多，B卖一价格&量
-                    case HUGE_DIF_POS:
-                    case BIG_DIF_POS:
-                    case NORMAL_DIF_POS:
-                    case SMALL_DIF_POS:
-                        positiveWave(expectedAmount, vcBuy, okTicker.getTicker().getSell(), m, n, dType, wave);
-                        break;
-                    // N<=回-波，负向波动，A开多，A卖一价格&量，B开空，B买一价格&量
-                    case HUGE_DIF_NEGA:
-                    case BIG_DIF_NEGA:
-                    case NORMAL_DIF_NEGA:
-                    case SMALL_DIF_NEGA:
-                        negativeWave(expectedAmount, vcSell, okTicker.getTicker().getBuy(), m, n, dType, wave);
-                        break;
-                    // M<回+波 and 回-波<N
-                    case NON_DIF:
-                        break;
-                    default:
-                        throw new UnsupportedOperationException("unknown DiffPriceType, dType=" + dType);
-
+                try {
+                    if (isShutdown()) {
+                        return;
                     }
+                    if (config.isSuspendOpen()) {
+                        return;
+                    }
+
+                    open();
+                }
+                catch (Exception e) {
+                    log.error("duo cang error.", e);
                 }
             }
         }, 1000, config.getInterval(), MILLISECONDS);
@@ -222,88 +376,72 @@ public class FutureHedging implements Hedging {
         // 平空，平多
         eveningUp.scheduleAtFixedRate(new Runnable() {
             public void run() {
-                VcTicker vcTicker = bitVcTradingManager.getNowVcTicker();
-                OkTicker okTicker = okCoinTradingManager.getNowOkTicker();
-                if (null == vcTicker || null == okTicker) {
-                    log.warn("detector not ready, wait for the next invoke.");
-                    return;
-                }
-                long nowSecond = System.currentTimeMillis() / 1000;
-                if (HedgingUtils.bigDifference(vcTicker.getTime(), okTicker.getDate())) {
-                    // TODO
-                }
-                else if (HedgingUtils.bigDifference(okTicker.getDate(), nowSecond)) {
-                    // TODO
-                }
-                else {
-                    float vcBuy = Float.parseFloat(vcTicker.getBuy());
-                    float vcSell = Float.parseFloat(vcTicker.getSell());
-                    float okSell = Float.parseFloat(okTicker.getTicker().getSell());
-                    float okBuy = Float.parseFloat(okTicker.getTicker().getBuy());
-
-                    // vcBuy-okSell
-                    float m = vcBuy - okSell;
-                    // vcSell-OkBuy
-                    float n = vcSell - okBuy;
-
-                    // n<=回
-                    if (n <= config.getReturnPrice()) {
-                        // 正向波动的交易平仓
-                        float expectedAmount =
-                                transactionManager.computeReverseOrReverseAirAmount(HUGE_DIF_POS);
-                        if (marketDetector.isVcSellAmountSatisfied(expectedAmount)
-                                && marketDetector.isOkBuyAmountSatisfied(expectedAmount)) {
-                            // A平空,看A卖1价格&量
-                            bitVcTradingManager.tradeReverseAir(vcSell + "", vcSell * expectedAmount + "", 1);
-
-                            // B平多,看B买1价格&量
-                            okCoinTradingManager.tradeReverse(okTicker.getTicker().getBuy(), expectedAmount
-                                    + "", false, 1);
-                        }
+                try {
+                    if (isShutdown()) {
+                        return;
                     }
-                    // m>=回
-                    else if (m >= config.getReturnPrice()) {
-                        // 负向波动的交易平仓
-                        float expectedAmount =
-                                transactionManager.computeReverseOrReverseAirAmount(HUGE_DIF_NEGA);
-                        if (marketDetector.isVcBuyAmountSatisfied(expectedAmount)
-                                && marketDetector.isOkSellAmountSatisfied(expectedAmount)) {
-                            // A平多,看A买1价格&量
-                            bitVcTradingManager.tradeReverse(vcBuy + "", vcBuy * expectedAmount + "", 1);
 
-                            // B平空,看B卖1价格&量
-                            okCoinTradingManager.tradeReverseAir(okTicker.getTicker().getSell(),
-                                expectedAmount + "", false, 1);
-                        }
+                    if (config.isSuspendReverse()) {
+                        return;
                     }
-                    else {
-                        // do nothing
-                    }
+
+                    reverse();
+                }
+                catch (Exception e) {
+                    log.error("ping cang error.", e);
                 }
             }
         }, 1000, config.getInterval(), MILLISECONDS);
     }
 
 
-    @SuppressWarnings("deprecation")
-    public void mock() {
-        // CompareResult result = comparePrice();
-        // if (result.isSuccess()) {
-        // log.warn(result.getDiffPrice() + "");
-        // logNew.warn("[" + System.currentTimeMillis() + "," +
-        // result.getDiffPrice() + "]");
-        // }
+    public int smallPositiveSize() {
+        return transactionManager.smallPositiveSize();
+    }
 
-        try {
-            VcTicker ticker = bitVc.getTicker(config.getTimeout());
-            System.out.println(new Date().toLocaleString() + " " + ticker.getLast());
 
-            // OkTicker ticker = okCoin.getTicker(config.getTimeout());
-            // System.out.println(new Date().toLocaleString() + " " +
-            // ticker.getTicker().getLast());
-        }
-        catch (Exception e) {
-        }
+    public int normalPositiveSize() {
+        return transactionManager.normalPositiveSize();
+    }
+
+
+    public int bigPositiveSize() {
+        return transactionManager.bigPositiveSize();
+    }
+
+
+    public int hugePositiveSize() {
+        return transactionManager.hugePositiveSize();
+    }
+
+
+    public int smallNegativeSize() {
+        return transactionManager.smallNegativeSize();
+    }
+
+
+    public int normalNegativeSize() {
+        return transactionManager.normalNegativeSize();
+    }
+
+
+    public int bigNegativeSize() {
+        return transactionManager.bigNegativeSize();
+    }
+
+
+    public int hugeNegativeSize() {
+        return transactionManager.hugeNegativeSize();
+    }
+
+
+    public float getVcRate() {
+        return marketDetector.getVcRate();
+    }
+
+
+    public float getOkRate() {
+        return marketDetector.getOkRate();
     }
 
 

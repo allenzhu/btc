@@ -16,6 +16,12 @@ public class VcDepths {
     private List<VcDeputer> bids;
 
 
+    public VcDepths() {
+        // for test
+        time = 0;
+    }
+
+
     public VcDepths(long t) {
         time = t;
         asks = new ArrayList<VcDeputer>();

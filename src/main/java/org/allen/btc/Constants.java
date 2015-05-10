@@ -23,6 +23,8 @@ public class Constants {
     public static final String PATH_OKCOIN_TICKET_WEEK = "/api/v1/future_ticker.do";
     public static final String PATH_OKCOIN_DEPTH_WEEK = "/api/v1/future_depth.do";
     public static final String PATH_OKCOIN_USER_FUTURE = "/api/v1/future_userinfo.do";
+    public static final String PATH_OKCOIN_EXCHANGE_RATE = "/api/v1/exchange_rate.do";
+    public static final String PATH_OKCOIN_CANCEL = "/api/v1/future_cancel.do";
 
     // bitvc path
     public static final String PATH_BITVC_TICKET_WEEK = "/futures/ticker_btc_week.js";
@@ -30,6 +32,7 @@ public class Constants {
     public static final String PATH_BITVC_ORDER_SAVE = "/futures/order/save";
     public static final String PATH_BITVC_ORDER_QUERY = "/futures/order";
     public static final String PATH_BITVC_USER_FUTURE = "/futures/balance";
+    public static final String PATH_BITVC_ORDER_CANCEL = "/futures/order/cancel";
 
     // okcoin parameter
     public static final String PARAM_OKCOIN_SYMBOL = "symbol";

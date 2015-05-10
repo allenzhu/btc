@@ -20,6 +20,8 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.alibaba.fastjson.JSON;
 
@@ -28,6 +30,9 @@ import com.alibaba.fastjson.JSON;
  * @auther lansheng.zj
  */
 public class HttpUtils {
+
+    private static Logger log = LoggerFactory.getLogger(HttpUtils.class);
+
 
     public static <T> T requestGet(CloseableHttpClient httpclient, URI uri, Class<T> clazz, int timeout)
             throws Exception {
@@ -45,6 +50,8 @@ public class HttpUtils {
 
             if (statusCode == HttpStatus.SC_OK) {
                 String json = EntityUtils.toString(response.getEntity());
+                // for test
+                // System.out.println(json);
                 result = (T) JSON.parseObject(json, clazz);
             }
             else {
@@ -88,6 +95,12 @@ public class HttpUtils {
             if (statusCode == HttpStatus.SC_OK) {
                 String json = EntityUtils.toString(response.getEntity());
                 result = (T) JSON.parseObject(json, clazz);
+                if (null != json && (json.contains("code") && json.contains("message"))) {
+                    log.error("result fail, result=" + json + ", uri=" + uri + ", map=" + map);
+                }
+                if (null != json && (json.contains("error_code") && json.contains("result"))) {
+                    log.error("result fail, result=" + json + ", uri=" + uri + ", map=" + map);
+                }
             }
             else {
                 String errorMsg = EntityUtils.toString(response.getEntity());

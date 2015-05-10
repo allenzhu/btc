@@ -35,6 +35,7 @@ public class TransactionManager {
     private ScheduledExecutorService taskService;
     private TransactionHolder transactionHolder;
     private HedgingConfig hedgingConfig;
+    private boolean isShutdown;
 
 
     public TransactionManager(HedgingConfig config) {
@@ -96,7 +97,7 @@ public class TransactionManager {
      * @return
      */
     public float computeReverseOrReverseAirAmount(DiffPriceType dType) {
-        float totalAmount = transactionHolder.exsitAmout(dType);
+        float totalAmount = transactionHolder.exsitAmount(dType);
         return (totalAmount <= 0.0) ? 0 : Math.min(hedgingConfig.getMinReverseAmount(), totalAmount);
     }
 
@@ -166,13 +167,13 @@ public class TransactionManager {
 
     public void persistTransactionHolder() throws IOException {
         String json = JSON.toJSONString(transactionHolder, true);
-        String fileName = hedgingConfig.getRecordPath();
+        String fileName = hedgingConfig.recordFilePath();
         FileUtils.string2File(json, fileName);
     }
 
 
     private String readTransactionStr() {
-        String fileName = hedgingConfig.getRecordPath();
+        String fileName = hedgingConfig.recordFilePath();
         log.warn("record file path " + fileName);
         return FileUtils.file2String(fileName);
     }
@@ -182,6 +183,9 @@ public class TransactionManager {
         taskService.scheduleAtFixedRate(new Runnable() {
             public void run() {
                 try {
+                    if (isShutdown())
+                        return;
+
                     persistTransactionHolder();
                 }
                 catch (IOException e) {
@@ -194,6 +198,8 @@ public class TransactionManager {
 
     public void close() {
         try {
+            setShutdown(true);
+            taskService.shutdown();
             persistTransactionHolder();
         }
         catch (IOException e) {
@@ -204,5 +210,60 @@ public class TransactionManager {
 
     public void addRecord(Record record, DiffPriceType dType) {
         transactionHolder.addRecord(record, dType);
+    }
+
+
+    public void removeRecord(float expectedAmount, DiffPriceType dType) {
+        transactionHolder.removeRecord(expectedAmount, dType);
+    }
+
+
+    public boolean isShutdown() {
+        return isShutdown;
+    }
+
+
+    public void setShutdown(boolean isShutdown) {
+        this.isShutdown = isShutdown;
+    }
+
+
+    public int smallPositiveSize() {
+        return transactionHolder.smallPositiveSize();
+    }
+
+
+    public int normalPositiveSize() {
+        return transactionHolder.normalPositiveSize();
+    }
+
+
+    public int bigPositiveSize() {
+        return transactionHolder.bigPositiveSize();
+    }
+
+
+    public int hugePositiveSize() {
+        return transactionHolder.hugePositiveSize();
+    }
+
+
+    public int smallNegativeSize() {
+        return transactionHolder.smallNegativeSize();
+    }
+
+
+    public int normalNegativeSize() {
+        return transactionHolder.normalNegativeSize();
+    }
+
+
+    public int bigNegativeSize() {
+        return transactionHolder.bigNegativeSize();
+    }
+
+
+    public int hugeNegativeSize() {
+        return transactionHolder.hugeNegativeSize();
     }
 }

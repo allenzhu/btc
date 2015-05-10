@@ -3,6 +3,8 @@ package org.allen.btc.future.bitvc;
 import static org.allen.btc.Constants.BITVC_API_DOMAIN;
 import static org.allen.btc.Constants.BITVC_MARKET_DOMAIN;
 import static org.allen.btc.Constants.HTTPS;
+import static org.allen.btc.Constants.PATH_BITVC_DEPTH_WEEK;
+import static org.allen.btc.Constants.PATH_BITVC_ORDER_CANCEL;
 import static org.allen.btc.Constants.PATH_BITVC_ORDER_QUERY;
 import static org.allen.btc.Constants.PATH_BITVC_ORDER_SAVE;
 import static org.allen.btc.Constants.PATH_BITVC_TICKET_WEEK;
@@ -17,9 +19,10 @@ import static org.allen.btc.utils.HttpUtils.requestPost;
 import java.net.URI;
 import java.util.TreeMap;
 
-import org.allen.btc.Constants;
 import org.allen.btc.Credentials;
 import org.allen.btc.Trading;
+import org.allen.btc.future.bitvc.domain.VcCancelRequest;
+import org.allen.btc.future.bitvc.domain.VcCancelResponse;
 import org.allen.btc.future.bitvc.domain.VcDepths;
 import org.allen.btc.future.bitvc.domain.VcDepthsOriginal;
 import org.allen.btc.future.bitvc.domain.VcOrderQueryRequest;
@@ -73,8 +76,8 @@ public class BitVcTrading implements Trading {
     @Override
     public VcDepths getDepths(int timeout) throws Exception {
         URI uri =
-                new URIBuilder().setScheme(HTTPS).setHost(BITVC_MARKET_DOMAIN)
-                    .setPath(Constants.PATH_BITVC_DEPTH_WEEK).build();
+                new URIBuilder().setScheme(HTTPS).setHost(BITVC_MARKET_DOMAIN).setPath(PATH_BITVC_DEPTH_WEEK)
+                    .build();
 
         VcDepthsOriginal result = requestGet(httpclient, uri, VcDepthsOriginal.class, timeout);
         VcDepths vcDepths = result.convertToVcDepths();
@@ -114,6 +117,24 @@ public class BitVcTrading implements Trading {
                 new URIBuilder().setScheme(HTTPS).setHost(BITVC_API_DOMAIN).setPath(PATH_BITVC_USER_FUTURE)
                     .build();
         VcUserFutureResponse result = doPost(request, new VcUserFutureResponse(), httpclient, uri, timeout);
+        return result;
+    }
+
+
+    @Override
+    public Float exchangeRate(int timeout) throws Exception {
+        return 1f;
+    }
+
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public VcCancelResponse cancel(Object r, int timeout) throws Exception {
+        VcCancelRequest request = (VcCancelRequest) r;
+        URI uri =
+                new URIBuilder().setScheme(HTTPS).setHost(BITVC_API_DOMAIN).setPath(PATH_BITVC_ORDER_CANCEL)
+                    .build();
+        VcCancelResponse result = doPost(request, new VcCancelResponse(), httpclient, uri, timeout);
         return result;
     }
 

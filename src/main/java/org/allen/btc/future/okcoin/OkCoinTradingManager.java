@@ -13,6 +13,8 @@ import java.util.concurrent.locks.LockSupport;
 
 import org.allen.btc.HedgingConfig;
 import org.allen.btc.future.okcoin.domain.OkTicker;
+import org.allen.btc.future.okcoin.domain.OkTradeCancelRequest;
+import org.allen.btc.future.okcoin.domain.OkTradeCancelResponse;
 import org.allen.btc.future.okcoin.domain.OkTradeQueryRequest;
 import org.allen.btc.future.okcoin.domain.OkTradeQueryResponse;
 import org.allen.btc.future.okcoin.domain.OkTradeRequest;
@@ -58,6 +60,20 @@ public class OkCoinTradingManager {
     }
 
 
+    public OkTradeCancelResponse cancel(String id) throws Exception {
+        OkTradeCancelRequest okRequest = new OkTradeCancelRequest();
+        okRequest.setAccessKey(config.getAccessKey());
+        okRequest.setSecretKey(config.getSecretKey());
+
+        okRequest.setOrder_id(id);
+        okRequest.setContract_type(PARAM_OKCOIN_CONTRACT_F_WEEK);
+        okRequest.setSymbol(PARAM_OKCOIN_SYMBOL_F_VALUE);
+
+        OkTradeCancelResponse response = okCoin.cancel(okRequest, 1000);
+        return response;
+    }
+
+
     public OkTradeResponse trade(String price, String amount, boolean matchPrice, String type)
             throws Exception {
         // B 开多,看B卖1价格
@@ -68,7 +84,7 @@ public class OkCoinTradingManager {
         okRequest.setSymbol(PARAM_OKCOIN_SYMBOL_F_VALUE);
         okRequest.setAmount(amount);
         okRequest.setContract_type(PARAM_OKCOIN_CONTRACT_F_WEEK);
-        okRequest.setLever_rate(10 + "");
+        // okRequest.setLever_rate(10 + "");
         okRequest.setMatch_price(matchPrice ? "1" : "0");
         okRequest.setPrice(price);
         okRequest.setType(type);
@@ -155,6 +171,15 @@ public class OkCoinTradingManager {
         case OKCOIN_ORDER_STATUS_DONE_HALF: // 部分成交
         case OKCOIN_ORDER_STATUS_CANCEL: // 撤单
         case OKCOIN_ORDER_STATUS_CANCEL_PENDING: // 撤单处理中
+            // 撤销
+            try {
+                OkTradeCancelResponse cancelResp = cancel(queryReponse.getOrder_id());
+                log.error("okcoin cancel order. id=" + cancelResp.getOrder_id());
+            }
+            catch (Exception e) {
+                log.error("okcoin cancel tradeReverseAirAndPending fail. id=" + queryReponse.getOrder_id(), e);
+            }
+
             // 市价单
             tmpPrice = computNowSellPrice(); // 卖
             tmpAmount = computeAmount(queryReponse, status, amount);
@@ -260,6 +285,15 @@ public class OkCoinTradingManager {
         case OKCOIN_ORDER_STATUS_DONE_HALF: // 部分成交
         case OKCOIN_ORDER_STATUS_CANCEL: // 撤单
         case OKCOIN_ORDER_STATUS_CANCEL_PENDING: // 撤单处理中
+            // 撤销
+            try {
+                OkTradeCancelResponse cancelResp = cancel(queryReponse.getOrder_id());
+                log.error("okcoin cancel order. id=" + cancelResp.getOrder_id());
+            }
+            catch (Exception e) {
+                log.error("okcoin cancel tradeOpenAirAndPending fail. id=" + queryReponse.getOrder_id(), e);
+            }
+
             // 市价单
             tmpPrice = computNowBuyPrice(); // 卖
             tmpAmount = computeAmount(queryReponse, status, amount);
@@ -365,6 +399,15 @@ public class OkCoinTradingManager {
         case OKCOIN_ORDER_STATUS_DONE_HALF: // 部分成交
         case OKCOIN_ORDER_STATUS_CANCEL: // 撤单
         case OKCOIN_ORDER_STATUS_CANCEL_PENDING: // 撤单处理中
+            // 撤销
+            try {
+                OkTradeCancelResponse cancelResp = cancel(queryReponse.getOrder_id());
+                log.error("okcoin cancel order. id=" + cancelResp.getOrder_id());
+            }
+            catch (Exception e) {
+                log.error("okcoin cancel tradeReverseAndPending fail. id=" + queryReponse.getOrder_id(), e);
+            }
+
             // 市价单
             tmpPrice = computNowBuyPrice(); // 卖
             tmpAmount = computeAmount(queryReponse, status, amount);
@@ -470,6 +513,15 @@ public class OkCoinTradingManager {
         case OKCOIN_ORDER_STATUS_DONE_HALF: // 部分成交
         case OKCOIN_ORDER_STATUS_CANCEL: // 撤单
         case OKCOIN_ORDER_STATUS_CANCEL_PENDING: // 撤单处理中
+            // 撤销
+            try {
+                OkTradeCancelResponse cancelResp = cancel(queryReponse.getOrder_id());
+                log.error("okcoin cancel order. id=" + cancelResp.getOrder_id());
+            }
+            catch (Exception e) {
+                log.error("okcoin cancel tradeOpenAndPending fail. id=" + queryReponse.getOrder_id(), e);
+            }
+
             // 市价单
             tmpPrice = computNowSellPrice(); // 卖
             tmpAmount = computeAmount(queryReponse, status, amount);

@@ -12,6 +12,8 @@ import static org.allen.btc.Constants.PARAM_BITVC_CONTRACTTYPE_WEEK;
 import java.util.concurrent.locks.LockSupport;
 
 import org.allen.btc.HedgingConfig;
+import org.allen.btc.future.bitvc.domain.VcCancelRequest;
+import org.allen.btc.future.bitvc.domain.VcCancelResponse;
 import org.allen.btc.future.bitvc.domain.VcOrderQueryRequest;
 import org.allen.btc.future.bitvc.domain.VcOrderRequest;
 import org.allen.btc.future.bitvc.domain.VcOrderResponse;
@@ -53,9 +55,24 @@ public class BitVcTradingManager {
         vcRequest.setTradeType(tradeType);
         vcRequest.setPrice(price);
         vcRequest.setMoney(money);
-        vcRequest.setLeverage("10");
+        // vcRequest.setLeverage("10");
 
         VcOrderResponse response = bitVc.trade(vcRequest, 1000);
+        return response;
+    }
+
+
+    public VcCancelResponse cancel(String id) throws Exception {
+        VcCancelRequest vcRequest = new VcCancelRequest();
+        vcRequest.setAccessKey(config.getAccessKey());
+        vcRequest.setSecretKey(config.getSecretKey());
+
+        vcRequest.setId(id);
+        vcRequest.setCoinType(PARAM_BITVC_COINTYPE_BTC);
+        vcRequest.setContractType(PARAM_BITVC_CONTRACTTYPE_WEEK);
+        vcRequest.setCreated(System.currentTimeMillis() / 1000 + "");
+
+        VcCancelResponse response = bitVc.cancel(vcRequest, 1000);
         return response;
     }
 
@@ -74,15 +91,16 @@ public class BitVcTradingManager {
     }
 
 
-    private String computeMoney(VcOrderResponse response, int status, String nowPrice, String oldPrice,
-            String oldMoney) {
-        float tmpAmount = Float.parseFloat(oldPrice) / Float.parseFloat(oldMoney);
-        if (BITVC_ORDER_STATUS_DONE_HALF == status) {
-            tmpAmount = tmpAmount - Float.parseFloat(response.getProcessedAmount());
-        }
-        return tmpAmount * Float.parseFloat(nowPrice) + "";
-    }
-
+    // private String computeMoney(VcOrderResponse response, int status, String
+    // nowPrice, String oldPrice,
+    // String oldMoney) {
+    // float tmpAmount = Float.parseFloat(oldMoney) /
+    // Float.parseFloat(oldPrice);
+    // if (BITVC_ORDER_STATUS_DONE_HALF == status) {
+    // tmpAmount = tmpAmount - Float.parseFloat(response.getProcessedAmount());
+    // }
+    // return tmpAmount * Float.parseFloat(nowPrice) + "";
+    // }
 
     private String computeNowBuyPrice() {
         VcTicker vcTicker = marketDetector.getNowVcTicker();
@@ -119,7 +137,13 @@ public class BitVcTradingManager {
             return false;
         }
 
-        int status = Integer.parseInt(queryResponse.getId());
+        if (null == queryResponse.getStatus()) {
+            log.error("[never expected] bit vc query open air response fail, but still fail. price=" + price
+                    + ", money=" + money + ", id=" + id);
+            return false;
+        }
+
+        int status = Integer.parseInt(queryResponse.getStatus());
         switch (status) {
         case BITVC_ORDER_STATUS_DONE: // 已成交
             log.warn("vc trade open air success. " + queryResponse);
@@ -128,8 +152,17 @@ public class BitVcTradingManager {
         case BITVC_ORDER_STATUS_UNDONE: // 未成交
         case BITVC_ORDER_STATUS_CANCEL: // 撤单
         case BITVC_ORDER_STATUS_DONE_HALF: // 部分成交
+            // 撤销为成交部分
+            try {
+                cancel(queryResponse.getId());
+            }
+            catch (Exception e) {
+                log.error("vc cancel tradeOpenAirAndPending fail. id=" + queryResponse.getId(), e);
+            }
+
             tmpPrice = computeNowBuyPrice(); // 买
-            tmpMoney = computeMoney(queryResponse, status, tmpPrice, price, money);
+            // tmpMoney = computeMoney(queryResponse, status, tmpPrice, price,
+            // money);
             isSuccess = tradeOpenAir(tmpPrice, tmpMoney, times + 1);
             log.warn("vc trade open air not exactly success, so retry open air. id=" + id + ", tmpPrice="
                     + tmpPrice + ", tmpMoney=" + tmpMoney + ", status=" + status + ", times=" + times);
@@ -178,6 +211,10 @@ public class BitVcTradingManager {
                     + price + ", money=" + money);
             return false;
         }
+        if (null == response.getStatus()) {
+            log.error("[never expected] bit vc trade open response fail. price=" + price + ", money=" + money);
+            return false;
+        }
 
         int status = Integer.parseInt(response.getStatus());
         switch (status) {
@@ -188,8 +225,17 @@ public class BitVcTradingManager {
         case BITVC_ORDER_STATUS_UNDONE: // 未成交
         case BITVC_ORDER_STATUS_CANCEL: // 撤单
         case BITVC_ORDER_STATUS_DONE_HALF: // 部分成交
+            // 撤销为成交部分
+            try {
+                cancel(response.getId());
+            }
+            catch (Exception e) {
+                log.error("vc cancel tradeOpenAir fail. id=" + response.getId(), e);
+            }
+
             tmpPrice = computeNowBuyPrice();
-            tmpMoney = computeMoney(response, status, tmpPrice, price, money);
+            // tmpMoney = computeMoney(response, status, tmpPrice, price,
+            // money);
             if (times > MAX_RETRY_TIMES) {
                 log.error("[never expected] bit vc open air retry " + times + " times but still fail. price="
                         + price + ", money=" + money);
@@ -234,6 +280,11 @@ public class BitVcTradingManager {
                     + " times, but still fail. price=" + price + ", money=" + money);
             return false;
         }
+        if (null == response.getStatus()) {
+            log.error("[never expected] bit vc reverse air response fail. price=" + price + ", money="
+                    + money);
+            return false;
+        }
 
         int status = Integer.parseInt(response.getStatus());
         switch (status) {
@@ -244,8 +295,17 @@ public class BitVcTradingManager {
         case BITVC_ORDER_STATUS_UNDONE: // 未成交
         case BITVC_ORDER_STATUS_CANCEL: // 撤单
         case BITVC_ORDER_STATUS_DONE_HALF: // 部分成交
+            // 撤销为成交部分
+            try {
+                cancel(response.getId());
+            }
+            catch (Exception e) {
+                log.error("vc cancel tradeReverseAir fail. id=" + response.getId(), e);
+            }
+
             tmpPrice = computeNowSellPrice();
-            tmpMoney = computeMoney(response, status, tmpPrice, price, money);
+            // tmpMoney = computeMoney(response, status, tmpPrice, price,
+            // money);
             if (times > MAX_RETRY_TIMES) {
                 log.error("[never expected] bit vc reverse air retry " + times
                         + " times but still fail. price=" + price + ", money=" + money);
@@ -290,8 +350,13 @@ public class BitVcTradingManager {
                     + " times, but still fail.");
             return false;
         }
+        if (null == queryResponse.getStatus()) {
+            log.error("[never expected] bit vc query reverse air response fail. price=" + price + ", money="
+                    + money + ", id=" + id);
+            return false;
+        }
 
-        int status = Integer.parseInt(queryResponse.getId());
+        int status = Integer.parseInt(queryResponse.getStatus());
         switch (status) {
         case BITVC_ORDER_STATUS_DONE: // 已成交
             log.warn("vc trade reverse air success. " + queryResponse);
@@ -300,8 +365,17 @@ public class BitVcTradingManager {
         case BITVC_ORDER_STATUS_UNDONE: // 未成交
         case BITVC_ORDER_STATUS_CANCEL: // 撤单
         case BITVC_ORDER_STATUS_DONE_HALF: // 部分成交
+            // 撤销为成交部分
+            try {
+                cancel(queryResponse.getId());
+            }
+            catch (Exception e) {
+                log.error("vc cancel tradeReverseAirAndPending fail. id=" + queryResponse.getId(), e);
+            }
+
             tmpPrice = computeNowSellPrice(); // 买
-            tmpMoney = computeMoney(queryResponse, status, tmpPrice, price, money);
+            // tmpMoney = computeMoney(queryResponse, status, tmpPrice, price,
+            // money);
             isSuccess = tradeReverseAir(tmpPrice, tmpMoney, times + 1);
             log.warn("vc trade reverse air not exactly success, so retry reverse air. id=" + id
                     + ", tmpPrice=" + tmpPrice + ", tmpMoney=" + tmpMoney + ", status=" + status + ", times="
@@ -360,8 +434,17 @@ public class BitVcTradingManager {
         case BITVC_ORDER_STATUS_UNDONE: // 未成交
         case BITVC_ORDER_STATUS_CANCEL: // 撤单
         case BITVC_ORDER_STATUS_DONE_HALF: // 部分成交
+            // 撤销为成交部分
+            try {
+                cancel(response.getId());
+            }
+            catch (Exception e) {
+                log.error("vc cancel tradeReverse fail. id=" + response.getId(), e);
+            }
+
             tmpPrice = computeNowBuyPrice();
-            tmpMoney = computeMoney(response, status, tmpPrice, price, money);
+            // tmpMoney = computeMoney(response, status, tmpPrice, price,
+            // money);
             if (times > MAX_RETRY_TIMES) {
                 log.error("[never expected] bit vc reverse retry " + times + " times but still fail. price="
                         + price + ", money=" + money);
@@ -407,7 +490,7 @@ public class BitVcTradingManager {
             return false;
         }
 
-        int status = Integer.parseInt(queryResponse.getId());
+        int status = Integer.parseInt(queryResponse.getStatus());
         switch (status) {
         case BITVC_ORDER_STATUS_DONE: // 已成交
             log.warn("vc trade reverse success. " + queryResponse);
@@ -416,8 +499,17 @@ public class BitVcTradingManager {
         case BITVC_ORDER_STATUS_UNDONE: // 未成交
         case BITVC_ORDER_STATUS_CANCEL: // 撤单
         case BITVC_ORDER_STATUS_DONE_HALF: // 部分成交
+            // 撤销为成交部分
+            try {
+                cancel(queryResponse.getId());
+            }
+            catch (Exception e) {
+                log.error("vc cancel tradeReverseAndPending fail. id=" + queryResponse.getId(), e);
+            }
+
             tmpPrice = computeNowBuyPrice(); // 买
-            tmpMoney = computeMoney(queryResponse, status, tmpPrice, price, money);
+            // tmpMoney = computeMoney(queryResponse, status, tmpPrice, price,
+            // money);
             isSuccess = tradeReverse(tmpPrice, tmpMoney, times + 1);
             log.warn("vc trade reverse not exactly success, so retry reverse. id=" + id + ", tmpPrice="
                     + tmpPrice + ", tmpMoney=" + tmpMoney + ", status=" + status + ", times=" + times);
@@ -470,6 +562,11 @@ public class BitVcTradingManager {
                     + price + ", money=" + money);
             return false;
         }
+        if (null == response.getStatus()) {
+            log.error("[never expected] bit vc open response fail, but still fail. price=" + price
+                    + ", money=" + money);
+            return false;
+        }
         int status = Integer.parseInt(response.getStatus());
         switch (status) {
         case BITVC_ORDER_STATUS_DONE: // 已成交
@@ -479,8 +576,17 @@ public class BitVcTradingManager {
         case BITVC_ORDER_STATUS_UNDONE: // 未成交
         case BITVC_ORDER_STATUS_CANCEL: // 撤单
         case BITVC_ORDER_STATUS_DONE_HALF: // 部分成交
+            // 撤销为成交部分
+            try {
+                cancel(response.getId());
+            }
+            catch (Exception e) {
+                log.error("vc cancel tradeOpen fail. id=" + response.getId(), e);
+            }
+
             tmpPrice = computeNowSellPrice();
-            tmpMoney = computeMoney(response, status, tmpPrice, price, money);
+            // tmpMoney = computeMoney(response, status, tmpPrice, price,
+            // money);
             if (times > MAX_RETRY_TIMES) {
                 log.error("[never expected] bit vc open retry " + times + " times but still fail. price="
                         + price + ", money=" + money);
@@ -521,11 +627,16 @@ public class BitVcTradingManager {
         }
         if (null == queryResponse) {
             log.error("[never expected] bit vc query tarde open order " + MAX_RETRY_TIMES
-                    + " times, but still fail.");
+                    + " times, but still fail. id=" + id);
+            return false;
+        }
+        if (null == queryResponse.getStatus()) {
+            log.error("[never expected] bit vc query open response fail, but still fail. price=" + price
+                    + ", money=" + money + ", id=" + id);
             return false;
         }
 
-        int status = Integer.parseInt(queryResponse.getId());
+        int status = Integer.parseInt(queryResponse.getStatus());
         switch (status) {
         case BITVC_ORDER_STATUS_DONE: // 已成交
             log.warn("vc trade open success. " + queryResponse);
@@ -534,8 +645,17 @@ public class BitVcTradingManager {
         case BITVC_ORDER_STATUS_UNDONE: // 未成交
         case BITVC_ORDER_STATUS_CANCEL: // 撤单
         case BITVC_ORDER_STATUS_DONE_HALF: // 部分成交
+            // 撤销为成交部分
+            try {
+                cancel(queryResponse.getId());
+            }
+            catch (Exception e) {
+                log.error("vc cancel tradeOpenAndPending fail. id=" + queryResponse.getId(), e);
+            }
+
             tmpPrice = computeNowSellPrice(); // 买
-            tmpMoney = computeMoney(queryResponse, status, tmpPrice, price, money);
+            // tmpMoney = computeMoney(queryResponse, status, tmpPrice, price,
+            // money);
             isSuccess = tradeOpen(tmpPrice, tmpMoney, times + 1);
             log.warn("vc trade open not exactly success, so retry open. id=" + id + ", tmpPrice=" + tmpPrice
                     + ", tmpMoney=" + tmpMoney + ", status=" + status + ", times=" + times);

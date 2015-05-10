@@ -8,8 +8,9 @@ import java.io.File;
  */
 public class HedgingConfig {
 
-    public String recordPath = System.getProperty("recordPath", System.getProperty("user.home")
-            + File.separator + "transactions");
+    public String rootPath = System.getProperty("recordPath", System.getProperty("user.home")
+            + File.separator);
+    public String recordFilename = "transactions";
 
     private float returnPrice; // 回归价
 
@@ -25,6 +26,8 @@ public class HedgingConfig {
     private float bigDiffPriceRatio; // 大差价操作仓位比例
     private float hugeDiffPriceRatio; // 极大差价操作仓位比例
 
+    private float feeRatio = 0.0003f;
+
     private float skaterPrice; // 滑价
 
     private float minOpenAmount; // 最小开仓量
@@ -37,6 +40,39 @@ public class HedgingConfig {
 
     private String accessKey;
     private String secretKey;
+
+    private boolean suspendOpen;
+    private boolean suspendReverse;
+
+
+    public float getFeeRatio() {
+        return feeRatio;
+    }
+
+
+    public void setFeeRatio(float feeRatio) {
+        this.feeRatio = feeRatio;
+    }
+
+
+    public boolean isSuspendOpen() {
+        return suspendOpen;
+    }
+
+
+    public void setSuspendOpen(boolean suspendOpen) {
+        this.suspendOpen = suspendOpen;
+    }
+
+
+    public boolean isSuspendReverse() {
+        return suspendReverse;
+    }
+
+
+    public void setSuspendReverse(boolean suspendReverse) {
+        this.suspendReverse = suspendReverse;
+    }
 
 
     public float getReturnPrice() {
@@ -149,13 +185,23 @@ public class HedgingConfig {
     }
 
 
-    public String getRecordPath() {
-        return recordPath;
+    public String getRootPath() {
+        return rootPath;
     }
 
 
-    public void setRecordPath(String recordPath) {
-        this.recordPath = recordPath;
+    public void setRootPath(String rootPath) {
+        this.rootPath = rootPath;
+    }
+
+
+    public String getRecordFilename() {
+        return recordFilename;
+    }
+
+
+    public void setRecordFilename(String recordFilename) {
+        this.recordFilename = recordFilename;
     }
 
 
@@ -226,5 +272,10 @@ public class HedgingConfig {
 
     public void setTotalAmount(float totalAmount) {
         this.totalAmount = totalAmount;
+    }
+
+
+    public String recordFilePath() {
+        return rootPath + recordFilename;
     }
 }

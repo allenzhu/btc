@@ -3,6 +3,7 @@ package org.allen.btc.market;
 import static org.allen.btc.utils.HedgingUtils.bigDifference;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -42,7 +43,11 @@ public class MarketDetector {
     private volatile VcDepths vcDepths;
     private volatile OkDepths okDepths;
 
+    private volatile float vcRate;
+    private volatile float okRate;
+
     private ScheduledExecutorService ses;
+    private boolean isShutdown;
 
 
     public MarketDetector(BitVcTrading vc, OkCoinTrading ok, HedgingConfig config) {
@@ -52,7 +57,7 @@ public class MarketDetector {
         okSnapshot = new LinkedList<OkTicker>();
         vcSnapshot = new LinkedList<VcTicker>();
 
-        ses = Executors.newScheduledThreadPool(4, new ThreadFactory() {
+        ses = Executors.newScheduledThreadPool(6, new ThreadFactory() {
             AtomicInteger index = new AtomicInteger(0);
 
 
@@ -70,6 +75,9 @@ public class MarketDetector {
             @Override
             public void run() {
                 try {
+                    if (isShutdown())
+                        return;
+
                     VcTicker ticker = bitVc.getTicker(100);
                     vcSnapshot.add(ticker);
                     if (vcSnapshot.size() > LIMIT_LEN) {
@@ -89,6 +97,9 @@ public class MarketDetector {
             @Override
             public void run() {
                 try {
+                    if (isShutdown())
+                        return;
+
                     VcDepths depths = bitVc.getDepths(100);
                     vcDepths = depths;
                 }
@@ -100,11 +111,34 @@ public class MarketDetector {
 
         }, 0, 100, TimeUnit.MILLISECONDS);
 
+        // vc rate
+        ses.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    if (isShutdown())
+                        return;
+
+                    float rate = bitVc.exchangeRate(100);
+                    vcRate = rate;
+                }
+                catch (Exception e) {
+                    log.error("vc rate request error.", e);
+                }
+
+            }
+
+        }, 0, 100, TimeUnit.MILLISECONDS);
+
         // ok ticker
         ses.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 try {
+                    if (isShutdown())
+                        return;
+
                     OkTicker ticker = okCoin.getTicker(100);
                     okSnapshot.add(ticker);
                     if (okSnapshot.size() > LIMIT_LEN) {
@@ -130,10 +164,25 @@ public class MarketDetector {
                 }
             }
         }, 0, 100, TimeUnit.MILLISECONDS);
+
+        // ok rate
+        ses.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    float rate = okCoin.exchangeRate(100);
+                    okRate = rate;
+                }
+                catch (Exception e) {
+                    log.error("ok depth request error.", e);
+                }
+            }
+        }, 0, 100, TimeUnit.MILLISECONDS);
     }
 
 
     public void close() {
+        setShutdown(true);
         ses.shutdown();
     }
 
@@ -168,7 +217,9 @@ public class MarketDetector {
 
     // vc sell satisfied
     public boolean isVcSellAmountSatisfied(float expectedAmount) {
-        VcDeputer deputer = vcDepths.getAsks().get(0);
+        List<VcDeputer> tmp = vcDepths.getAsks();
+        // 降序排列，取最小的一个，即最后一个
+        VcDeputer deputer = tmp.get(tmp.size() - 1);
         float amount = deputer.getAmount();
         return amount >= expectedAmount;
     }
@@ -178,15 +229,38 @@ public class MarketDetector {
     public boolean isOkBuyAmountSatisfied(float expectedAmount) {
         OkDeputer deputer = okDepths.getBids().get(0);
         float amount = deputer.getAmount();
-        return amount >= expectedAmount;
+        return amount * 100 >= deputer.getPrice() * expectedAmount;
+        // return amount >= expectedAmount;
     }
 
 
     // Ok sell satisfied
     public boolean isOkSellAmountSatisfied(float expectedAmount) {
-        OkDeputer deputer = okDepths.getAsks().get(0);
+        List<OkDeputer> tmp = okDepths.getAsks();
+        OkDeputer deputer = tmp.get(tmp.size() - 1);
         float amount = deputer.getAmount();
-        return amount >= expectedAmount;
+        return amount * 100 >= deputer.getPrice() * expectedAmount;
+        // return amount >= expectedAmount;
+    }
+
+
+    public float getVcRate() {
+        return vcRate;
+    }
+
+
+    public float getOkRate() {
+        return okRate;
+    }
+
+
+    public boolean isShutdown() {
+        return isShutdown;
+    }
+
+
+    public void setShutdown(boolean isShutdown) {
+        this.isShutdown = isShutdown;
     }
 
 

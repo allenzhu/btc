@@ -77,8 +77,9 @@ public class HedgingUtils {
     }
 
 
+    // 差值大于5s
     public static boolean bigDifference(long l1, long l2) {
-        if (Math.abs(l1 - l2) > 1) {
+        if (Math.abs(l1 - l2) > 5) {
             return true;
         }
         return false;
